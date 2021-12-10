@@ -5,3 +5,5 @@
 .project
 .cproject
 .settings/*
+
+.vscode/*
