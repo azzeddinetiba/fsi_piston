@@ -1,2 +1,7 @@
 /.metadata/
 /Debug/
+
+
+.project
+.cproject
+.settings/*
