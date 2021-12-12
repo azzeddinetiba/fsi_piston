@@ -69,11 +69,6 @@ void data_f_init(int &nelt, int &nnt, int &nnel, int &ndln, int &ndle, int &ndlt
 	vcor_n = vcor;
 	vcor_np1 = vcor;
 
-	// Connectivity
-	MatrixXd connec(nelt, 2);
-	connec.col(0) = VectorXd::LinSpaced(Sequential, nelt, 0, nnt - 2);
-	connec.col(1) = VectorXd::LinSpaced(Sequential, nelt, 1, nnt - 1);
-
 	gam = 1.4; // the specific heat ratio of the gas
 	gamm1 = gam - 1.;
 	R = 287;		 // the individual gas constant
@@ -171,7 +166,7 @@ void spring(vector<float> &vprel, float &Ppiston, float &pres_init0, float &A, f
 	u_double_dot_t = inter;
 }
 
-void structure(int &nnt, float &vsols0, int& istep, MatrixXf &presL2t,
+void structure(int &nnt, float &vsols0, int &istep, MatrixXf &presL2t,
 			   float &u_t, float &u_dot_t, float &u_double_dot_t, vector<float> &vprel,
 			   float &pres_init0, float &A, float &Delta_t, float &Lspe, float &Lsp0,
 			   vector<float> &histo_deformation, vector<float> &Ec, vector<float> &Ep,
@@ -212,24 +207,146 @@ void move_mesh(float &Delta_t, float &u_dot_t, MatrixXf &vsol,
 	vcor_np1.col(0) = vcor_n.col(0) + Delta_t * wx;
 }
 
-void Lax_Wendroff(float& gamm1, float& Delta_t, vsol, vpres, wx, conec, vcor_n, vcor_np1, number)
+MatrixXf flux(MatrixXf &vsol, VectorXf &vpres, VectorXf &wx)
 {
-	int nnt, ndln, nelt, nnel;
-	nnt = vsol.rows(); nelt = conec.rows();
-	ndln = vsol.cols(); nnel = conec.cols();
+	ArrayXXf foo(vsol.rows(), 3), vsol_;
+	ArrayXf vpres_, wx_;
+	vsol_ = vsol.array();
+	vpres_ = vpres.array();
+	wx_ = wx.array();
+
+	foo.col(0) = vsol_.col(1) - vsol_.col(0) * wx_;
+	foo.col(1) = vsol_.col(1).pow(2) / vsol_.col(0) + vpres_ - vsol_.col(1) * wx_;
+	foo.col(2) = (vsol_.col(2) + vpres_) * vsol_.col(1) / vsol_.col(0) - vsol_.col(2) * wx_;
+
+	return foo.matrix();
+}
+
+MatrixXf flu_residual(int &ie, float &Delta_t, MatrixXi &conec, MatrixXf &vsol,
+					  VectorXf &vpres, VectorXf &vcore0, MatrixXf &vflue, VectorXf &wxe,
+					  float &gamm1)
+{
+	VectorXi kloce;
+	MatrixXf vsole, vsnod(2, vsol.cols()), vflu1_2, vrese(2, 3), interm(2, 2), interm2(2, 3);
+	VectorXf vprese, x, vsol1_2, vsolmoy, vpres1_2SV;
+	ArrayXf vpres1_2S;
+	ArrayXXf vsnod_;
+	float xl0;
+
+	kloce = conec(ie, all);
+	vsole = vsol(kloce, all);
+	vprese = vpres(kloce);
+
+	x = vcore0(1, all) - vcore0(0, all);
+	xl0 = sqrt(x.transpose() * x);
+
+	vsol1_2 = .5 * (vsole(0, all) + vsole(1, all)) -
+			  .5 * Delta_t / xl0 * (vflue(1, all) - vflue(0, all));
+
+	vsolmoy = (vsole(0, all) + vsole(1, all)) * .5;
+
+	vsnod = vsole;
+	vsnod.row(0) += vsol1_2.transpose() - vsolmoy.transpose();
+	vsnod.row(1) += vsol1_2.transpose() - vsolmoy.transpose();
+	vsnod_ = vsnod.array();
+
+	vpres1_2S = gamm1 * (vsnod_(all, 2) - .5 * vsnod_(all, 1).pow(2) / vsnod_(all, 0));
+	vpres1_2SV = vpres1_2S.matrix();
+
+	vflu1_2 = flux(vsnod, vpres1_2SV, wxe);
+
+	interm(0, 0) = -1;
+	interm(0, 1) = -1;
+	interm(1, 0) = 1;
+	interm(1, 1) = 1;
+
+
+	interm2.row(0) = vflu1_2.row(0);
+	interm2.row(1) = vflu1_2.row(1);
+	vrese = .5 * Delta_t * (interm * interm2);
+
+	return vrese;
+}
+
+MatrixXf flu_mass(int& ie, VectorXf& vcore)
+{
+	float xl;
+	VectorXf x;
+	MatrixXf vme, interm(2, 2);
+
+	x = vcore(1, all) - vcore(0, all);
+
+	xl = sqrt( x.transpose() * x);
+	interm(0, 0) = 2;
+	interm(0, 1) = 1;
+	interm(1, 0) = 1;
+	interm(1, 1) = 2;
+	vme = xl / 6 * interm;
+
+	return vme;
 
 }
 
-void fluid(int& nnt, float &Delta_t, float &u_dot_t, MatrixXf &vsol, VectorXf &vcor_n, 
-		VectorXf &vcor_np1, VectorXf &wx, float gamm1, VectorXf vpres, MatrixXf conec)
+void Lax_Wendroff(float &gamm1, float &Delta_t, MatrixXf &vsol, VectorXf &vpres,
+				  VectorXf &wx, MatrixXi &conec, VectorXf &vcor_n, VectorXf &vcor_np1)
+{
+	int nnt, ndln, nelt, nnel, ie;
+	nnt = vsol.rows();
+	nelt = conec.rows();
+	ndln = vsol.cols();
+	nnel = conec.cols();
+
+	MatrixXf vres = MatrixXf::Zero(nnt, ndln), vmg_n = MatrixXf::Zero(nnt, nnt),
+			 vmg_np1 = MatrixXf::Zero(nnt, nnt), vflux, vflue, vrese;
+	VectorXi kloce;
+	VectorXf vcore_n, vcore_np1, wxe;
+
+	vflux = flux(vsol, vpres, wx);
+
+
+	for (ie = 0; ie < nelt; ie++)
+	{
+		kloce = conec(ie, seq(0, nnel - 1));
+		vcore_n = vcor_n(kloce.array(), 0);
+		vcore_np1 = vcor_np1(kloce.array(), 0);
+		vflue = vflux(kloce.array(), all);
+		wxe = wx(kloce);
+
+
+		vrese = flu_residual(ie, Delta_t, conec, vsol, vpres, 
+			vcore_n, vflue, wxe, gamm1);
+
+
+		vres(kloce, all) = vres(kloce, all) + vrese;
+
+
+		vmg_n(kloce, kloce) = vmg_n(kloce, kloce) + flu_mass(ie, vcore_n);
+
+		vmg_np1(kloce,kloce) = vmg_np1(kloce,kloce) + flu_mass(ie,vcore_np1);
+
+		if (ie == 0)
+		{
+			vres.row(0)  = vres.row(0)  + Delta_t * vflue.row(0);
+		}
+
+		if (ie == nelt - 1)
+		{
+			vres.row(nnt - 1)  = vres.row(nnt - 1)  - Delta_t * vflue.row(1);
+		}
+
+	}
+
+
+}
+
+void fluid(int &nnt, float &Delta_t, float &u_dot_t, MatrixXf &vsol, VectorXf &vcor_n,
+		   VectorXf &vcor_np1, VectorXf &wx, float gamm1, VectorXf vpres, MatrixXi conec)
 {
 
 	move_mesh(Delta_t, u_dot_t, vsol, vcor_n, vcor_np1, wx);
 	vsol(nnt - 1, 1) = vsol(nnt - 1, 0) * u_dot_t;
 
-	Lax_Wendroff(gamm1, Delta_t, vsol, vpres, wx, conec, vcor_n, vcor_np1, number);
-
-
+	Lax_Wendroff(gamm1, Delta_t, vsol, vpres, wx, conec, vcor_n, vcor_np1);
 }
 
 int main()
@@ -248,6 +365,11 @@ int main()
 	ndlt = nnt * ndln;
 	float u_dot_t = 0., vfg0, u_double_dot_t;
 
+	// Connectivity
+	MatrixXi conec(nelt, 2);
+	conec.col(0) = VectorXi::LinSpaced(Sequential, nelt, 0, nnt - 2);
+	conec.col(1) = VectorXi::LinSpaced(Sequential, nelt, 1, nnt - 1);
+
 	// Initialisation
 	MatrixXf vflux(nnt, ndln), presL2t;
 	vector<float> Delta_t_storage, t;
@@ -259,13 +381,6 @@ int main()
 	VectorXf wx(nnt);
 	vector<float> vprel;
 	VectorXf temp, pres;
-	MatrixXf m(2, 3);
-	m(0, 0) = 3;
-	m(1, 0) = 2.5;
-	m(0, 1) = -1;
-
-	temp = temperature(1., m);
-	pres = pressure(1, temp, m);
 
 	VectorXd x1, x2;
 	x1 = VectorXd::LinSpaced(Sequential, 71 - 1, 1, 70);
@@ -300,10 +415,10 @@ int main()
 				  u_t, u_dot_t, u_double_dot_t, vprel, pres_init0, A, Delta_t,
 				  Lspe, Lsp0, histo_deformation, Ec, Ep, Em, Force_ext, vpres);
 
-		fluid(nnt, Delta_t, u_dot_t, vsol, vcor_n, vcor_np1, wx);
+		fluid(nnt, Delta_t, u_dot_t, vsol, vcor_n, vcor_np1, wx, gamm1, vpres, conec);
 	}
 
-	cout<<"\n Succeeded";
+	cout << "\n Succeeded";
 
 	return 0;
 }
