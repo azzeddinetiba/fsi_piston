@@ -11,3 +11,5 @@
 
 *.exe
 test.cpp
+
+*.txt

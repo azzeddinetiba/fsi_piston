@@ -14,6 +14,9 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <Eigen/StdVector>
+#include <fstream>
+#include <iterator>
+
 
 using namespace Eigen;
 using namespace std;
@@ -601,5 +604,18 @@ int main()
 	}
 
 	cout << "\n Succeeded";
+
+	std::ofstream file("results_sol.txt");
+	if (file.is_open())
+	{
+		file << "Here is the matrix solution:\n" << vsol << '\n';
+	}
+
+	std::ofstream file2("results_pres.txt");
+	if (file2.is_open())
+	{
+		    std::ostream_iterator<float> output_iterator(file2, "\n");
+			std::copy(histo_pressure.begin(), histo_pressure.end(), output_iterator);
+	}
 	return 0;
 }
