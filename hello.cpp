@@ -54,7 +54,8 @@ void data_f_init(int &nelt, int &nnt, int &nnel, int &ndln, int &ndle, int &ndlt
 				 float &A, float &U_0, float &L_t, VectorXf &vcor, VectorXf &vcor0, VectorXf &vcor_n, VectorXf &vcor_np1,
 				 float &gam, float &gamm1, float &R, float &C_v, float &pres_init0, float &temp_init0, float &rho_init0,
 				 float &pres_init, float &rho_init, float &temp_init, float &p_ext, float &u_init,
-				 float &e_init, MatrixXf &vsol, VectorXf &vpres, VectorXf &vtemp, VectorXf &vcelerity, float &cel_init)
+				 float &e_init, MatrixXf &vsol, VectorXf &vpres, VectorXf &vtemp, VectorXf &vcelerity, float &cel_init, 
+				 vector<float> &presL2t)
 {
 
 	L_0 = 1;
@@ -105,15 +106,16 @@ void data_f_init(int &nelt, int &nnt, int &nnel, int &ndln, int &ndle, int &ndlt
 	vcelerity_i = (gam * gamm1 * C_v * vtemp.array()).sqrt();
 	vcelerity = vcelerity_i.matrix();
 	cel_init = vcelerity(0);
+	presL2t.push_back(pres_init);
 
 }
 
 void data_s_init(int &nnt, float &Lsp0, float &pres_init0, float &Lspe, float &p_ext,
 				 float &A, float &omega0, float &freq0, float &T0, VectorXf &vpres,
-				 float &pres_init, float &vsols0, float &u_t, vector<float> &vprel)
+				 float &pres_init, float &vsols0, float &u_t, vector<float> &vprel, float &u_double_dot_t)
 {
 
-	float vfg0, u_double_dot_t;
+	float vfg0;
 
 	vprel.push_back(1e7);
 	vprel.push_back(100);
@@ -147,8 +149,8 @@ float timestep(VectorXf &vcor, MatrixXf &vsol, VectorXf &wx, VectorXf &vcelerity
 	return Delta_t;
 }
 
-void spring(vector<float> &vprel, float &Ppiston, float &pres_init0, float &A, float &Delta_t,
-			float &vsols0, float &u_t, float &u_dot_t, float &u_double_dot_t)
+void spring(vector<float> vprel, float Ppiston, float pres_init0, float A, float Delta_t,
+			float vsols0, float &u_t, float &u_dot_t, float &u_double_dot_t)
 {
 	float vkg, vmg, vfg, vkt, vres, vdu, inter;
 	vkg = vprel[0];
@@ -179,7 +181,7 @@ void structure(int &nnt, float &vsols0, int &istep, vector<float> &presL2t,
 
 	if (istep == 0)
 	{
-		Ppiston = vpres(nnt - 1);
+		Ppiston = presL2t[0];
 	}
 	else
 	{
@@ -200,20 +202,20 @@ void structure(int &nnt, float &vsols0, int &istep, vector<float> &presL2t,
 	histo_deformation.push_back(hist_def);
 }
 
-void move_mesh(float &Delta_t, float &u_dot_t, MatrixXf &vsol,
+void move_mesh(float &Delta_t, float u_dot_t, MatrixXf vsol,
 			   VectorXf &vcor_n, VectorXf &vcor_np1, VectorXf &wx)
 {
 	int nnt, ndim;
 	nnt = vcor_n.rows();
 	ndim = vcor_n.cols();
-	wx = (u_dot_t * VectorXf::LinSpaced(Sequential, nnt, 0, 1).array()).matrix();
+	wx = (u_dot_t * VectorXf::LinSpaced(Sequential, nnt, 0, 1));
 
 	vcor_n = vcor_np1;
 
 	vcor_np1.col(0) = vcor_n.col(0) + Delta_t * wx;
 }
 
-MatrixXf flux(MatrixXf &vsol, VectorXf &vpres, VectorXf &wx)
+MatrixXf flux(MatrixXf vsol, VectorXf vpres, VectorXf wx)
 {
 	ArrayXXf foo(vsol.rows(), 3), vsol_;
 	ArrayXf vpres_, wx_;
@@ -291,9 +293,10 @@ MatrixXf flu_mass(int &ie, VectorXf &vcore)
 	return vme;
 }
 
-MatrixXf shock_capture(VectorXf &vcor, MatrixXi &conec, MatrixXf &vmgn, MatrixXf &vmgnp1,
+MatrixXf shock_capture(VectorXf vcor, MatrixXi &conec, MatrixXf &vmgn, MatrixXf &vmgnp1,
 					   MatrixXf &vres, MatrixXf &vsol, VectorXf &xlumpm, VectorXf &num_elems)
 {
+	
 	int nnt, ndln, nelt, nnel, num_el;
 	float cd, xl;
 	nnt = vsol.rows();
@@ -310,7 +313,10 @@ MatrixXf shock_capture(VectorXf &vcor, MatrixXi &conec, MatrixXf &vmgn, MatrixXf
 	cel1 = MatrixXf::Zero(nnt, 2);
 	cel2 = MatrixXf::Zero(nnt, 2);
 	cel3 = MatrixXf::Zero(nnt, 2);
-
+	pmax = VectorXf::Zero(nnt);
+	pmin = VectorXf::Zero(nnt);
+	rmax = VectorXf::Zero(nnt);
+	rmin = VectorXf::Zero(nnt);
 
 	interm(0, 0) = 1;
 	interm(0, 1) = -1;
@@ -360,7 +366,6 @@ MatrixXf shock_capture(VectorXf &vcor, MatrixXi &conec, MatrixXf &vmgn, MatrixXf
 		qmin = uimin - (vsolj + vdul);
 
 
-
 		for (int in = 0; in < nnt; in++)
 		{
 			if ( (std::abs(pmin(in)) < 1e-9) || (std::abs(pmax(in)) < 1e-9))
@@ -377,6 +382,7 @@ MatrixXf shock_capture(VectorXf &vcor, MatrixXi &conec, MatrixXf &vmgn, MatrixXf
 
 
 
+			
 		for (int ie = 0; ie < nelt; ie++)
 		{
 			for (int in = 0; in < 2; in++)
@@ -403,7 +409,8 @@ MatrixXf shock_capture(VectorXf &vcor, MatrixXi &conec, MatrixXf &vmgn, MatrixXf
 		if (j == 2) cel3 = cel;
 
 	}
-	
+				cout<<"\n";
+
 
 	var_cel = VectorXf::Zero(nnt);
 	for (int ie = 0; ie < nelt; ie++)
@@ -416,6 +423,7 @@ MatrixXf shock_capture(VectorXf &vcor, MatrixXi &conec, MatrixXf &vmgn, MatrixXf
 	{
 		du(all, j) = vdul3(all, j) + (var_cel.array() * (vduh3(all, j) - vdul3(all, j)).array()).matrix();
 	}
+
 
 	return du;
 }
@@ -447,6 +455,7 @@ void Lax_Wendroff(float &gamm1, float &Delta_t, MatrixXf &vsol, VectorXf &vpres,
 		vrese = flu_residual(ie, Delta_t, conec, vsol, vpres,
 							 vcore_n, vflue, wxe, gamm1);
 
+
 		vres(kloce, all) = vres(kloce, all) + vrese;
 
 		vmg_n(kloce, kloce) = vmg_n(kloce, kloce) + flu_mass(ie, vcore_n);
@@ -464,6 +473,7 @@ void Lax_Wendroff(float &gamm1, float &Delta_t, MatrixXf &vsol, VectorXf &vpres,
 		}
 	}
 
+
 	xlumpm = vmg_n.colwise().sum().transpose();
 
 	du = shock_capture(vcor_n, conec, vmg_n, vmg_np1, vres, vsol, xlumpm, num_elems);
@@ -475,8 +485,8 @@ void Lax_Wendroff(float &gamm1, float &Delta_t, MatrixXf &vsol, VectorXf &vpres,
 }
 
 void fluid(int &nnt, float &Delta_t, float &u_dot_t, MatrixXf &vsol, VectorXf &vcor_n,
-		   VectorXf &vcor_np1, VectorXf &wx, float gamm1, VectorXf vpres, MatrixXi conec,
-		   VectorXf &num_elems, VectorXf vtemp, float &C_v, float &R, int &istep,
+		   VectorXf &vcor_np1, VectorXf &wx, float &gamm1, VectorXf &vpres, MatrixXi &conec,
+		   VectorXf &num_elems, VectorXf &vtemp, float &C_v, float &R, int &istep,
 		   vector<float> &presL2t, float &A, vector<float> &Imp_fl,
 		   vector<VectorXf, aligned_allocator<VectorXf>> &histo_velocity, vector<float> &histo_pressure,
 		   vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation, float &L_0)
@@ -484,13 +494,13 @@ void fluid(int &nnt, float &Delta_t, float &u_dot_t, MatrixXf &vsol, VectorXf &v
 
 	VectorXf hist_veloc(2), wx_vec(1);
 	move_mesh(Delta_t, u_dot_t, vsol, vcor_n, vcor_np1, wx);
+
 	vsol(nnt - 1, 1) = vsol(nnt - 1, 0) * u_dot_t;
 
 	Lax_Wendroff(gamm1, Delta_t, vsol, vpres, wx, conec, vcor_n, vcor_np1, num_elems);
 
 	vtemp = temperature(C_v, vsol);
 	vpres = pressure(R, vtemp, vsol);
-
 	presL2t.push_back(vpres(nnt - 1));
 
 	if (istep == 0)
@@ -546,9 +556,9 @@ int main()
 				A, U_0, L_t, vcor, vcor0, vcor_n, vcor_np1,
 				gam, gamm1, R, C_v, pres_init0, temp_init0, rho_init0,
 				pres_init, rho_init, temp_init, p_ext, u_init,
-				e_init, vsol, vpres, vtemp, vcelerity, cel_init);
+				e_init, vsol, vpres, vtemp, vcelerity, cel_init, presL2t);
 	data_s_init(nnt, Lsp0, pres_init0, Lspe, p_ext, A, omega0, freq0,
-				T0, vpres, pres_init, vsols0, u_t, vprel);
+				T0, vpres, pres_init, vsols0, u_t, vprel, u_double_dot_t);
 
 	float Tmax, CFL, dxmin, Delta_t;
 	Tmax = .5 * T0;
@@ -577,13 +587,13 @@ int main()
 		Total_time += Delta_t;
 		t.push_back(Total_time);
 
-		cout<<"\n Delta T : "; cout<<Delta_t;
-		cout<<"\n Total Time : "; cout<<Total_time;
-
+		cout<<" \n Total Time \n";
+		cout<<Total_time;
 
 		structure(nnt, vsols0, istep, presL2t,
 				  u_t, u_dot_t, u_double_dot_t, vprel, pres_init0, A, Delta_t,
 				  Lspe, Lsp0, histo_deformation, Ec, Ep, Em, Force_ext, vpres);
+		
 
 		fluid(nnt, Delta_t, u_dot_t, vsol, vcor_n, vcor_np1, wx, gamm1, vpres, conec, num_elems, 
 			vtemp, C_v, R, istep, presL2t, A, Imp_fl, histo_velocity, histo_pressure, 
@@ -591,6 +601,5 @@ int main()
 	}
 
 	cout << "\n Succeeded";
-
 	return 0;
 }
