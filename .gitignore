@@ -10,6 +10,7 @@
 
 
 *.exe
-test.cpp
+test*.cpp
 
 *.txt
+results/*
