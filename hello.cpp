@@ -176,7 +176,7 @@ void spring(vector<float> vprel, float Ppiston, float pres_init0, float A, float
 void structure(int &nnt, float &vsols0, int &istep, vector<float> &presL2t,
 			   float &u_t, float &u_dot_t, float &u_double_dot_t, vector<float> &vprel,
 			   float &pres_init0, float &A, float &Delta_t, float &Lspe, float &Lsp0,
-			   vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation, vector<float> &Ec, vector<float> &Ep,
+			   vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation, vector<float> &Ec, vector<float> &Ep,
 			   vector<float> &Em, vector<float> &Force_ext, VectorXf &vpres)
 {
 	vsols0 = u_t;
@@ -491,8 +491,8 @@ void fluid(int &nnt, float &Delta_t, float &u_dot_t, MatrixXf &vsol, VectorXf &v
 		   VectorXf &vcor_np1, VectorXf &wx, float &gamm1, VectorXf &vpres, MatrixXi &conec,
 		   VectorXf &num_elems, VectorXf &vtemp, float &C_v, float &R, int &istep,
 		   vector<float> &presL2t, float &A, vector<float> &Imp_fl,
-		   vector<VectorXf, aligned_allocator<VectorXf>> &histo_velocity, vector<float> &histo_pressure,
-		   vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation, float &L_0)
+		   vector<VectorXf, aligned_allocator<VectorXf> > &histo_velocity, vector<float> &histo_pressure,
+		   vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation, float &L_0)
 {
 
 	VectorXf hist_veloc(2), wx_vec(1);
@@ -552,7 +552,7 @@ int main()
 	vector<float> vprel, histo_pressure, Imp_fl;
 	VectorXf temp, pres;
 
-	vector<VectorXf, aligned_allocator<VectorXf>> histo_velocity,
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_velocity,
 		histo_deformation;
 
 	data_f_init(nelt, nnt, nnel, ndln, ndle, ndlt, L_0,
