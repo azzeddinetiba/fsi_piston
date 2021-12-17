@@ -15,5 +15,6 @@ test*.cpp
 
 src/hello.cpp
 Results/
+*.txt
 
 .DS_Store
