@@ -28,6 +28,7 @@ properties load_ppts()
 {
 	properties ppts;
 
+	ppts.T_max_coeff = 6;
 	ppts.L_0 = 1;
 	ppts.A = 1;
 
@@ -86,7 +87,7 @@ int main()
 	FSI fsi_piston(structure_model.T0);
 
 	// Solve the problem
-	fsi_piston.solve(structure_model, fluid_model);
+	fsi_piston.solve(structure_model, fluid_model, 2.53e-5);
 
 	// Export the results into .txt files
 	fsi_piston.export_results();

@@ -15,25 +15,25 @@ FSI::FSI(float T0)
 void FSI::export_results()
 {
 
-	ofstream file("Results/results_pres.txt");
+	ofstream file("Results/results_pres_fixed_dt.txt");
 	if (file.is_open())
 	{
 		std::ostream_iterator<float> output_iterator(file, "\n");
 		std::copy(histo_pressure.begin(), histo_pressure.end(), output_iterator);
 	}
 
-	ofstream file6("Results/results_Delta_T.txt");
+	ofstream file6("Results/results_Delta_T_fixed_dt.txt");
 	if (file6.is_open())
 	{
 		std::ostream_iterator<float> output_iterator(file6, "\n");
 		std::copy(Delta_t_storage.begin(), Delta_t_storage.end(), output_iterator);
 	}
 
-	ofstream file1("Results/results_pres_field.txt");
-	ofstream file2("Results/results_rho.txt");
-	ofstream file3("Results/results_rho_v.txt");
-	ofstream file4("Results/results_rho_e.txt");
-	ofstream file5("Results/results_v.txt");
+	ofstream file1("Results/results_pres_field_fixed_dt.txt");
+	ofstream file2("Results/results_rho_fixed_dt.txt");
+	ofstream file3("Results/results_rho_v_fixed_dt.txt");
+	ofstream file4("Results/results_rho_e_fixed_dt.txt");
+	ofstream file5("Results/results_v_fixed_dt.txt");
 
 	for (int i = 0; i < istep + 1; i++)
 	{
@@ -75,7 +75,7 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 	vcor_np1 = fluid.fl_mesh_np1.get_vcor();
 	nnt = fluid.fl_mesh_np1.nnt;
 	vsol = fluid.get_vsol();
-	Tmax = .5 * struc.T0;
+	Tmax = fluid.fluid_ppts.T_max_coeff * struc.T0;
 
 	vcelerity = fluid.get_vcelerity();
 	dxmin = (vcor_np1(seq(1, nnt - 1)).array() - vcor_np1(seq(0, nnt - 2)).array()).minCoeff();

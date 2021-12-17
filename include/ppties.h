@@ -11,6 +11,7 @@ using namespace std;
 struct properties
 {
 	vector<float> vprel;
+	float T_max_coeff;
 	float Lspe;
 	float Lsp0;
 	float L_0;
