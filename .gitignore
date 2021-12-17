@@ -16,3 +16,5 @@ test*.cpp
 src/hello.cpp
 
 .DS_Store
+
+*/.ipynb_checkpoints*/*
