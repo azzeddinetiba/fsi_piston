@@ -64,7 +64,7 @@ void FSI::export_results()
 	}
 }
 
-void FSI::solve(STRUC &struc, Fluid &fluid, float d_t = 0)
+void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 {
 
 	VectorXf vcor, vcor_np1, vcelerity, wx;
