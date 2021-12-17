@@ -11,7 +11,6 @@
 
 using namespace Eigen;
 
-
 class Mesh
 {
 
@@ -25,7 +24,6 @@ public:
 	VectorXf get_vcor();
 	VectorXf get_wx();
 	MatrixXi get_conec();
-
 };
 
 #endif

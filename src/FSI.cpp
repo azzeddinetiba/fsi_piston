@@ -1,12 +1,9 @@
 #define _USE_MATH_DEFINES
 
-
 #include "FSI.h"
-
 
 using namespace Eigen;
 using namespace std;
-
 
 FSI::FSI(float T0)
 {
@@ -21,15 +18,15 @@ void FSI::export_results()
 	ofstream file("Results/results_pres.txt");
 	if (file.is_open())
 	{
-		    std::ostream_iterator<float> output_iterator(file, "\n");
-			std::copy(histo_pressure.begin(), histo_pressure.end(), output_iterator);
+		std::ostream_iterator<float> output_iterator(file, "\n");
+		std::copy(histo_pressure.begin(), histo_pressure.end(), output_iterator);
 	}
 
 	ofstream file6("Results/results_Delta_T.txt");
 	if (file6.is_open())
 	{
-		    std::ostream_iterator<float> output_iterator(file6, "\n");
-			std::copy(Delta_t_storage.begin(), Delta_t_storage.end(), output_iterator);
+		std::ostream_iterator<float> output_iterator(file6, "\n");
+		std::copy(Delta_t_storage.begin(), Delta_t_storage.end(), output_iterator);
 	}
 
 	ofstream file1("Results/results_pres_field.txt");
@@ -67,7 +64,6 @@ void FSI::export_results()
 	}
 }
 
-
 void FSI::solve(STRUC &struc, Fluid &fluid)
 {
 
@@ -89,9 +85,9 @@ void FSI::solve(STRUC &struc, Fluid &fluid)
 	while (Total_time < (Tmax - Delta_t))
 	{
 
-		cout<<"Total Time :\n";
-		cout<<Total_time;
-		cout<<"\n";
+		cout << "Total Time :\n";
+		cout << Total_time;
+		cout << "\n";
 
 		istep += 1;
 
@@ -107,7 +103,6 @@ void FSI::solve(STRUC &struc, Fluid &fluid)
 
 		t.push_back(Total_time);
 
-
 		// Apply the piston pressure value from the fluid problem to the solid problem
 		if (istep == 0)
 		{
@@ -119,18 +114,15 @@ void FSI::solve(STRUC &struc, Fluid &fluid)
 		}
 		struc.set_BC(ppiston);
 
-
 		// Solve the structural problem
-		struc.solve(Delta_t);		
+		struc.solve(Delta_t);
 		u_dot_t = struc.get_u_dot_t();
 		struc.store_data(histo_deformation, Force_ext, Ec, Ep, Em);
 
-
 		// Solve the fluid problem
 		fluid.solve(Delta_t, u_dot_t);
-		fluid.store_data(histo_pressure, Imp_fl, histo_velocity, 
-			histo_deformation, histo_pres_field, histo_rho, histo_rho_v, 
-			histo_rho_e, fluid.fl_mesh_np1, Delta_t, u_dot_t, istep);
-
+		fluid.store_data(histo_pressure, Imp_fl, histo_velocity,
+						 histo_deformation, histo_pres_field, histo_rho, histo_rho_v,
+						 histo_rho_e, fluid.fl_mesh_np1, Delta_t, u_dot_t, istep);
 	}
 }

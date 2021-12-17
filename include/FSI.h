@@ -17,25 +17,23 @@ using namespace Eigen;
 
 class FSI
 {
-	public:
-		vector<float> histo_pressure, Force_ext, Ec, Ep, Em;
-		vector<float> Imp_fl;
-		vector<VectorXf, aligned_allocator<VectorXf> > histo_velocity;
-		vector<VectorXf, aligned_allocator<VectorXf> > histo_deformation;
-		vector<VectorXf, aligned_allocator<VectorXf> > histo_pres_field;
-		vector<VectorXf, aligned_allocator<VectorXf> > histo_rho;
-		vector<VectorXf, aligned_allocator<VectorXf> > histo_rho_v;
-		vector<VectorXf, aligned_allocator<VectorXf> > histo_rho_e;
+public:
+	vector<float> histo_pressure, Force_ext, Ec, Ep, Em;
+	vector<float> Imp_fl;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_velocity;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_deformation;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_pres_field;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_rho;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_rho_v;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_rho_e;
 
-		float Tmax, CFL, dxmin, Delta_t, Total_time;
-		vector<float> t, Delta_t_storage;
-		int istep;
+	float Tmax, CFL, dxmin, Delta_t, Total_time;
+	vector<float> t, Delta_t_storage;
+	int istep;
 
-		FSI(float T0);
-		void solve(STRUC &struc, Fluid &fluid);
-		void export_results();
-
-
+	FSI(float T0);
+	void solve(STRUC &struc, Fluid &fluid);
+	void export_results();
 };
 
 #endif

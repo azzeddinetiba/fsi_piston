@@ -1,15 +1,9 @@
 #define _USE_MATH_DEFINES
 
-
 #include "Fluid.h"
-
-
 
 using namespace Eigen;
 using namespace std;
-
-
-
 
 VectorXf temperature(float C_v, MatrixXf vsol)
 {
@@ -43,7 +37,6 @@ VectorXf pressure(float R, VectorXf vtemp, MatrixXf vsol)
 	return pres;
 }
 
-
 VectorXf Fluid::get_vcelerity()
 {
 	return vcelerity;
@@ -53,7 +46,6 @@ MatrixXf Fluid::get_vsol()
 {
 	return vsol;
 }
-
 
 VectorXf Fluid::get_vpres()
 {
@@ -67,21 +59,21 @@ Fluid::Fluid(properties ppts_)
 
 void Fluid::initialize(Mesh msh)
 {
-    fl_mesh = msh;
+	fl_mesh = msh;
 	fl_mesh_np1 = msh;
 	ArrayXXf vsol_i(msh.nnt, 3);
-    vsol_i.col(0) = fluid_ppts.rho_init * VectorXf::Ones(msh.nnt).array();
+	vsol_i.col(0) = fluid_ppts.rho_init * VectorXf::Ones(msh.nnt).array();
 	vsol_i.col(1) = fluid_ppts.rho_init * fluid_ppts.u_init * VectorXf::Ones(msh.nnt).array();
 	vsol_i.col(2) = fluid_ppts.rho_init * fluid_ppts.e_init * VectorXf::Ones(msh.nnt).array();
 
 	vsol = vsol_i.matrix();
 
-    presL2t.push_back(fluid_ppts.pres_init);
+	presL2t.push_back(fluid_ppts.pres_init);
 
-    vtemp = temperature(fluid_ppts.C_v, vsol);
+	vtemp = temperature(fluid_ppts.C_v, vsol);
 	vpres = pressure(fluid_ppts.R, vtemp, vsol);
 
-    ArrayXf vcelerity_i;
+	ArrayXf vcelerity_i;
 	vcelerity_i = (fluid_ppts.gam * fluid_ppts.gamm1 * fluid_ppts.C_v * vtemp.array()).sqrt();
 	vcelerity = vcelerity_i.matrix();
 
@@ -93,7 +85,6 @@ void Fluid::initialize(Mesh msh)
 		else
 			num_elems(ind) = 2;
 	}
-
 }
 
 float Fluid::timestep(VectorXf vcor, MatrixXf vsol, VectorXf wx, VectorXf vcelerity, float CFL)
@@ -169,7 +160,7 @@ MatrixXf Fluid::flu_residual(int ie, float Delta_t, VectorXf vcore0, MatrixXi co
 }
 
 MatrixXf Fluid::shock_capture(VectorXf vcor, MatrixXi conec, MatrixXf vmgn, MatrixXf vmgnp1,
-					   MatrixXf &vres, MatrixXf vsol, VectorXf xlumpm, VectorXf &num_elems)
+							  MatrixXf &vres, MatrixXf vsol, VectorXf xlumpm, VectorXf &num_elems)
 {
 
 	int nnt, ndln, nelt, nnel, num_el;
@@ -309,18 +300,17 @@ MatrixXf Fluid::flu_mass(int ie, VectorXf vcore)
 	return vme;
 }
 
-
 void Fluid::Lax_Wendroff(float gamm1, float Delta_t, VectorXf wx, Mesh msh_n, Mesh msh_np1)
 {
 
 	MatrixXf vres = MatrixXf::Zero(msh_n.nnt, 3), vmg_n = MatrixXf::Zero(msh_n.nnt, msh_n.nnt),
 			 vmg_np1 = MatrixXf::Zero(msh_n.nnt, msh_n.nnt), vflux, vflue, vrese, du(msh_n.nnt, 3);
 	VectorXi kloce;
-    MatrixXi conec;
+	MatrixXi conec;
 	VectorXf vcore_n, vcore_np1, wxe, xlumpm(msh_n.nnt), vcor_n, vcor_np1;
-    vcor_n = msh_n.get_vcor();
-    vcor_np1 = msh_np1.get_vcor();
-    conec = msh_n.get_conec();
+	vcor_n = msh_n.get_vcor();
+	vcor_np1 = msh_np1.get_vcor();
+	conec = msh_n.get_conec();
 
 	vflux = flux(vsol, vpres, wx);
 
@@ -351,7 +341,6 @@ void Fluid::Lax_Wendroff(float gamm1, float Delta_t, VectorXf wx, Mesh msh_n, Me
 		}
 	}
 
-
 	xlumpm = vmg_n.colwise().sum().transpose();
 
 	du = shock_capture(vcor_n, conec, vmg_n, vmg_np1, vres, vsol, xlumpm, num_elems);
@@ -365,34 +354,32 @@ void Fluid::Lax_Wendroff(float gamm1, float Delta_t, VectorXf wx, Mesh msh_n, Me
 void Fluid::solve(float Delta_t, float u_dot_t)
 {
 
-    VectorXf hist_veloc(2);
+	VectorXf hist_veloc(2);
 
-    fl_mesh = fl_mesh_np1;
+	fl_mesh = fl_mesh_np1;
 
-    fl_mesh_np1.move_mesh(Delta_t,  u_dot_t,  vsol);
+	fl_mesh_np1.move_mesh(Delta_t, u_dot_t, vsol);
 
-    vsol(fl_mesh.nnt - 1, 1) = vsol(fl_mesh.nnt - 1, 0) * u_dot_t;
+	vsol(fl_mesh.nnt - 1, 1) = vsol(fl_mesh.nnt - 1, 0) * u_dot_t;
 
-    Lax_Wendroff(fluid_ppts.gamm1, Delta_t, fl_mesh_np1.get_wx(), fl_mesh, fl_mesh_np1);
+	Lax_Wendroff(fluid_ppts.gamm1, Delta_t, fl_mesh_np1.get_wx(), fl_mesh, fl_mesh_np1);
 
-    vtemp = temperature(fluid_ppts.C_v, vsol);
+	vtemp = temperature(fluid_ppts.C_v, vsol);
 	vpres = pressure(fluid_ppts.R, vtemp, vsol);
 	presL2t.push_back(vpres(fl_mesh.nnt - 1));
-
-
 }
 
-void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vector<VectorXf, aligned_allocator<VectorXf> > &histo_velocity, 
-        vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation, vector<VectorXf, aligned_allocator<VectorXf> > &histo_pres_field, 
-		vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho, vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho_v, 
-		vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho_e, Mesh &msh, float Delta_t, float u_dot_t, int istep)
+void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vector<VectorXf, aligned_allocator<VectorXf>> &histo_velocity,
+					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation, vector<VectorXf, aligned_allocator<VectorXf>> &histo_pres_field,
+					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho, vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho_v,
+					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho_e, Mesh &msh, float Delta_t, float u_dot_t, int istep)
 {
 
-    int nnt = msh.nnt;
-    VectorXf hist_veloc(2);
-    VectorXf wx = msh.get_wx();
+	int nnt = msh.nnt;
+	VectorXf hist_veloc(2);
+	VectorXf wx = msh.get_wx();
 
-    if (istep == 0)
+	if (istep == 0)
 		Imp_fl.push_back(presL2t[0] * fluid_ppts.A * u_dot_t * Delta_t);
 	else
 		Imp_fl.push_back(Imp_fl[istep - 1] + presL2t[istep] * fluid_ppts.A * u_dot_t * Delta_t);
@@ -408,5 +395,4 @@ void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vec
 	histo_rho.push_back(get_vsol().col(0));
 	histo_rho_v.push_back(get_vsol().col(1));
 	histo_rho_e.push_back(get_vsol().col(2));
-
 }

@@ -8,7 +8,6 @@
 using namespace Eigen;
 using namespace std;
 
-
 struct properties
 {
 	vector<float> vprel;
@@ -32,8 +31,6 @@ struct properties
 	float e_init;
 	float temp_init0;
 };
-
-
 
 inline properties load_ppts();
 

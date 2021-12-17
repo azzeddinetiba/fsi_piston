@@ -5,7 +5,7 @@
  *      Author: tiba
  */
 
-// 
+//
 
 #define _USE_MATH_DEFINES
 
@@ -24,9 +24,6 @@
 using namespace Eigen;
 using namespace std;
 
-
-
-
 properties load_ppts()
 {
 	properties ppts;
@@ -39,11 +36,11 @@ properties load_ppts()
 
 	ppts.gam = 1.4; // the specific heat ratio of the gas
 	ppts.gamm1 = ppts.gam - 1.;
-	ppts.R = 287;		 // the individual gas constant
+	ppts.R = 287;					// the individual gas constant
 	ppts.C_v = ppts.R / ppts.gamm1; // the specific heat capacity of the gas
 
-	ppts.pres_init0 = 1E5;								   // initial pressure for chamber length = L0
-	ppts.temp_init0 = 300;								   // initial temperature
+	ppts.pres_init0 = 1E5;														// initial pressure for chamber length = L0
+	ppts.temp_init0 = 300;														// initial temperature
 	ppts.rho_init0 = ppts.pres_init0 / ppts.gamm1 / ppts.C_v / ppts.temp_init0; // initial volumic mass
 
 	ppts.pres_init = ppts.pres_init0 * pow((ppts.L_0 / ppts.L_t), ppts.gam);
@@ -56,7 +53,7 @@ properties load_ppts()
 	ppts.u_init = 0.;
 	ppts.e_init = ppts.pres_init / ppts.gamm1 / ppts.rho_init + 0.5 * pow(ppts.u_init, 2.);
 
-    ppts.vprel.push_back(1e7);
+	ppts.vprel.push_back(1e7);
 	ppts.vprel.push_back(100);
 
 	ppts.Lsp0 = 1.2;
@@ -65,9 +62,6 @@ properties load_ppts()
 	return ppts;
 }
 
-
-
-
 int main()
 {
 
@@ -75,33 +69,27 @@ int main()
 	properties ppts;
 	ppts = load_ppts();
 
-    
 	// Create the mesh
-    int nnt = 71;
+	int nnt = 71;
 	Mesh mesh_n;
 	mesh_n.load(nnt, ppts.L_t);
-
 
 	// Create the fluid FEM model
 	Fluid fluid_model(ppts);
 	fluid_model.initialize(mesh_n);
 
-
 	// Create the structure FEM model
 	STRUC structure_model(ppts);
 	structure_model.initialize(fluid_model.get_vpres()(nnt - 1));
 
-
 	// Create the fluid-strucure interaction coupling
 	FSI fsi_piston(structure_model.T0);
-
 
 	// Solve the problem
 	fsi_piston.solve(structure_model, fluid_model);
 
-
 	// Export the results into .txt files
 	fsi_piston.export_results();
-	
+
 	return 0;
 }
