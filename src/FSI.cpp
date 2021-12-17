@@ -25,6 +25,13 @@ void FSI::export_results()
 			std::copy(histo_pressure.begin(), histo_pressure.end(), output_iterator);
 	}
 
+	ofstream file6("results/results_Delta_T.txt");
+	if (file6.is_open())
+	{
+		    std::ostream_iterator<float> output_iterator(file6, "\n");
+			std::copy(Delta_t_storage.begin(), Delta_t_storage.end(), output_iterator);
+	}
+
 	ofstream file1("results/results_pres_field.txt");
 	ofstream file2("results/results_rho.txt");
 	ofstream file3("results/results_rho_v.txt");

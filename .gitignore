@@ -13,6 +13,5 @@
 test*.cpp
 
 *.txt
-results/*
 
 src/hello.cpp
