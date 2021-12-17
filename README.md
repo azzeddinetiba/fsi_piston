@@ -1,6 +1,6 @@
 # fsi_piston
 
-This is the C++ implementation of the fluid-structure interaction problem from [Emmanuel Lefranc¸ois and Jean-Paul Boufflet (2010)](http://dx.doi.org/10.1137/090758313). (The C-Model for now).
+This is the C++ implementation of the fluid-structure interaction problem from [Emmanuel Lefrançois and Jean-Paul Boufflet (2010)](http://dx.doi.org/10.1137/090758313). (The C-Model for now).
 
 It is based on the  [Matlab code](http://www.utc.fr/~elefra02/ifs/funcref.html) written by the authors.
 
@@ -21,7 +21,7 @@ It is based on the  [Matlab code](http://www.utc.fr/~elefra02/ifs/funcref.html) 
 
 ## Prerequisites
 
-You need to include the https://eigen.tuxfamily.org/index.php?title=Main_Page library along with the header files, and indicate it to your compiler :
+You need to include the [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) library along with the header files, and indicate it to your compiler :
 ```sh
 gcc -I XXX/eigen-3.4.0 ...
 ```
