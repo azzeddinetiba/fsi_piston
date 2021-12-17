@@ -12,6 +12,5 @@
 *.exe
 test*.cpp
 
-*.txt
 
 src/hello.cpp
