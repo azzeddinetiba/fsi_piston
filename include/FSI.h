@@ -32,7 +32,7 @@ public:
 	int istep;
 
 	FSI(float T0);
-	void solve(STRUC &struc, Fluid &fluid);
+	void solve(STRUC &struc, Fluid &fluid, float d_t = 0);
 	void export_results();
 };
 

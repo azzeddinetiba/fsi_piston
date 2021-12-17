@@ -64,7 +64,7 @@ void FSI::export_results()
 	}
 }
 
-void FSI::solve(STRUC &struc, Fluid &fluid)
+void FSI::solve(STRUC &struc, Fluid &fluid, float d_t = 0)
 {
 
 	VectorXf vcor, vcor_np1, vcelerity, wx;
@@ -79,7 +79,10 @@ void FSI::solve(STRUC &struc, Fluid &fluid)
 
 	vcelerity = fluid.get_vcelerity();
 	dxmin = (vcor_np1(seq(1, nnt - 1)).array() - vcor_np1(seq(0, nnt - 2)).array()).minCoeff();
-	Delta_t = CFL * dxmin / (vcelerity.array() + (vsol.array().col(1) / vsol.array().col(0)).abs()).maxCoeff();
+	if (d_t < 1e-9)
+		Delta_t = CFL * dxmin / (vcelerity.array() + (vsol.array().col(1) / vsol.array().col(0)).abs()).maxCoeff();
+	else
+		Delta_t = d_t;
 
 	// Time loop/increments
 	while (Total_time < (Tmax - Delta_t))
@@ -97,7 +100,10 @@ void FSI::solve(STRUC &struc, Fluid &fluid)
 		vsol = fluid.get_vsol();
 
 		// Compute the next time step value respecting CFL
-		Delta_t = fluid.timestep(vcor_np1, vsol, wx, vcelerity, CFL);
+		if (d_t < 1e-9)
+			Delta_t = fluid.timestep(vcor_np1, vsol, wx, vcelerity, CFL);
+		else
+			Delta_t = d_t;
 		Delta_t_storage.push_back(Delta_t);
 		Total_time += Delta_t;
 
