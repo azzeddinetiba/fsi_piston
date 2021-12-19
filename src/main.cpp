@@ -28,7 +28,7 @@ properties load_ppts()
 {
 	properties ppts;
 
-	ppts.T_max_coeff = 6;
+	ppts.T_max_coeff = 2.5;
 	ppts.L_0 = 1;
 	ppts.A = 1;
 
@@ -71,7 +71,7 @@ int main()
 	ppts = load_ppts();
 
 	// Create the mesh
-	int nnt = 71;
+	int nnt = 81;
 	Mesh mesh_n;
 	mesh_n.load(nnt, ppts.L_t);
 
