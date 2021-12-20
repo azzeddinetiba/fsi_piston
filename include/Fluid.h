@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cmath>
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include<Eigen/IterativeLinearSolvers>
 #include <vector>
 #include <Eigen/StdVector>
 #include <iterator>

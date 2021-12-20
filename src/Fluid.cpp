@@ -176,6 +176,8 @@ MatrixXf Fluid::shock_capture(VectorXf vcor, MatrixXi conec, MatrixXf vmgn, Matr
 		cel2(nelt, 2), cel3(nelt, 2), du(nnt, ndln);
 	VectorXi kloce;
 	LLT<MatrixXf> llt_vmgnp1;
+	SparseMatrix<float> s_vmgn(nnt, nnt);
+	SparseMatrix<float> s_vmgnp1(nnt, nnt);
 	cel1 = MatrixXf::Zero(nnt, 2);
 	cel2 = MatrixXf::Zero(nnt, 2);
 	cel3 = MatrixXf::Zero(nnt, 2);
@@ -191,17 +193,23 @@ MatrixXf Fluid::shock_capture(VectorXf vcor, MatrixXi conec, MatrixXf vmgn, Matr
 
 	cd = .4;
 
-	llt_vmgnp1.compute(vmgnp1);
+	// llt_vmgnp1.compute(vmgnp1);
+	s_vmgn = vmgn.sparseView();
+	s_vmgnp1 = vmgnp1.sparseView();
+
+	ConjugateGradient<SparseMatrix<float> > cg_vmgnp1;
+	cg_vmgnp1.compute(s_vmgnp1);
+
 
 	for (int j = 0; j < ndln; j++)
 	{
 		vresj = vres.col(j);
 		vsolj = vsol.col(j);
 
-		vresj = vresj + (vmgn - vmgnp1) * vsolj;
+		vresj = vresj + (s_vmgn - s_vmgnp1) * vsolj;
 
 		vdul = ((vresj + cd * vmgn * vsolj - cd * (xlumpm.array() * vsolj.array()).matrix()).array() / xlumpm.array()).matrix();
-		vduh = llt_vmgnp1.solve(vresj);
+		vduh = cg_vmgnp1.solve(vresj);
 
 		vduh3.col(j) = vduh;
 		vdul3.col(j) = vdul;

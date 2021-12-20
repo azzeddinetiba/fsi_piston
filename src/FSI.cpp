@@ -75,7 +75,7 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 	vcor_np1 = fluid.fl_mesh_np1.get_vcor();
 	nnt = fluid.fl_mesh_np1.nnt;
 	vsol = fluid.get_vsol();
-	Tmax = .5 * struc.T0;
+	Tmax = 1.1 * struc.T0;
 
 	vcelerity = fluid.get_vcelerity();
 	dxmin = (vcor_np1(seq(1, nnt - 1)).array() - vcor_np1(seq(0, nnt - 2)).array()).minCoeff();
