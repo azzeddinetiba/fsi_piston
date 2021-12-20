@@ -28,7 +28,7 @@ properties load_ppts()
 {
 	properties ppts;
 
-	ppts.T_max_coeff = 2.5;
+	ppts.T_max_coeff = 1.1;
 	ppts.L_0 = 1;
 	ppts.A = 1;
 
@@ -71,7 +71,7 @@ int main()
 	ppts = load_ppts();
 
 	// Create the mesh
-	int nnt = 81;
+	int nnt = 500;
 	Mesh mesh_n;
 	mesh_n.load(nnt, ppts.L_t);
 
@@ -87,7 +87,7 @@ int main()
 	FSI fsi_piston(structure_model.T0);
 
 	// Solve the problem
-	fsi_piston.solve(structure_model, fluid_model, 2.53e-5);
+	fsi_piston.solve(structure_model, fluid_model);
 
 	// Export the results into .txt files
 	fsi_piston.export_results();
