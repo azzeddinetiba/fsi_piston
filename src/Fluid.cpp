@@ -377,10 +377,11 @@ void Fluid::solve(float Delta_t, float u_dot_t)
 	presL2t.push_back(vpres(fl_mesh.nnt - 1));
 }
 
-void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vector<VectorXf, aligned_allocator<VectorXf>> &histo_velocity,
-					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation, vector<VectorXf, aligned_allocator<VectorXf>> &histo_pres_field,
-					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho, vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho_v,
-					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho_e, Mesh &msh, float Delta_t, float u_dot_t, int istep)
+void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vector<VectorXf, aligned_allocator<VectorXf> > &histo_velocity,
+					   vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation, vector<VectorXf, aligned_allocator<VectorXf> > &histo_pres_field,
+					   vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho, vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho_v,
+					   vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho_e, vector<VectorXf, aligned_allocator<VectorXf> > &histo_mesh, 
+					   Mesh &msh, float Delta_t, float u_dot_t, int istep)
 {
 
 	int nnt = msh.nnt;
@@ -403,4 +404,6 @@ void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vec
 	histo_rho.push_back(get_vsol().col(0));
 	histo_rho_v.push_back(get_vsol().col(1));
 	histo_rho_e.push_back(get_vsol().col(2));
+
+	histo_mesh.push_back(fl_mesh_np1.get_vcor());
 }

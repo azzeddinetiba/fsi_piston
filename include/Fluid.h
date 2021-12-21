@@ -34,10 +34,11 @@ public:
 	MatrixXf flux(MatrixXf vsol, VectorXf vpres, VectorXf wx);
 	MatrixXf shock_capture(VectorXf vcor, MatrixXi conec, MatrixXf vmgn, MatrixXf vmgnp1,
 						   MatrixXf &vres, MatrixXf vsol, VectorXf xlumpm, VectorXf &num_elems);
-	void store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vector<VectorXf, aligned_allocator<VectorXf>> &histo_velocity,
-					vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation, vector<VectorXf, aligned_allocator<VectorXf>> &histo_pres_field,
-					vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho, vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho_v,
-					vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho_e, Mesh &msh, float Delta_t, float u_dot_t, int istep);
+	void store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vector<VectorXf, aligned_allocator<VectorXf> > &histo_velocity,
+					vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation, vector<VectorXf, aligned_allocator<VectorXf> > &histo_pres_field,
+					vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho, vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho_v,
+					vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho_e, vector<VectorXf, aligned_allocator<VectorXf> > &histo_mesh, 
+					Mesh &msh, float Delta_t, float u_dot_t, int istep);
 	MatrixXf flu_mass(int ie, VectorXf vcore);
 	VectorXf get_vpres();
 	MatrixXf get_vsol();

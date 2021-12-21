@@ -34,6 +34,7 @@ void FSI::export_results()
 	ofstream file3("Results/results_rho_v.txt");
 	ofstream file4("Results/results_rho_e.txt");
 	ofstream file5("Results/results_v.txt");
+	ofstream file7("Results/results_mesh.txt");
 
 	for (int i = 0; i < istep + 1; i++)
 	{
@@ -61,6 +62,11 @@ void FSI::export_results()
 		{
 			file5 << histo_velocity[i] << '\n';
 		}
+
+		if (file7.is_open())
+		{
+			file7 << histo_mesh[i] << '\n';
+		}
 	}
 }
 
@@ -75,7 +81,7 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 	vcor_np1 = fluid.fl_mesh_np1.get_vcor();
 	nnt = fluid.fl_mesh_np1.nnt;
 	vsol = fluid.get_vsol();
-	Tmax = 1.1 * struc.T0;
+	Tmax = 1.2 * struc.T0;
 
 	vcelerity = fluid.get_vcelerity();
 	dxmin = (vcor_np1(seq(1, nnt - 1)).array() - vcor_np1(seq(0, nnt - 2)).array()).minCoeff();
@@ -129,6 +135,6 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 		fluid.solve(Delta_t, u_dot_t);
 		fluid.store_data(histo_pressure, Imp_fl, histo_velocity,
 						 histo_deformation, histo_pres_field, histo_rho, histo_rho_v,
-						 histo_rho_e, fluid.fl_mesh_np1, Delta_t, u_dot_t, istep);
+						 histo_rho_e, histo_mesh, fluid.fl_mesh_np1, Delta_t, u_dot_t, istep);
 	}
 }

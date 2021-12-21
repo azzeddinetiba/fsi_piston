@@ -20,12 +20,13 @@ class FSI
 public:
 	vector<float> histo_pressure, Force_ext, Ec, Ep, Em;
 	vector<float> Imp_fl;
-	vector<VectorXf, aligned_allocator<VectorXf>> histo_velocity;
-	vector<VectorXf, aligned_allocator<VectorXf>> histo_deformation;
-	vector<VectorXf, aligned_allocator<VectorXf>> histo_pres_field;
-	vector<VectorXf, aligned_allocator<VectorXf>> histo_rho;
-	vector<VectorXf, aligned_allocator<VectorXf>> histo_rho_v;
-	vector<VectorXf, aligned_allocator<VectorXf>> histo_rho_e;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_velocity;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_deformation;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_pres_field;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_rho;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_rho_v;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_rho_e;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_mesh;
 
 	float Tmax, CFL, dxmin, Delta_t, Total_time;
 	vector<float> t, Delta_t_storage;

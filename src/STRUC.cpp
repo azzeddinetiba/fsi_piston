@@ -33,7 +33,7 @@ float STRUC::get_Ppiston()
 	return Ppiston;
 }
 
-void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation,
+void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation,
 					   vector<float> &Force_ext, vector<float> &Ec, vector<float> &Ep, vector<float> &Em)
 {
 	Ec.push_back(.5 * struc_ppts.vprel[1] * pow(u_dot_t, 2));

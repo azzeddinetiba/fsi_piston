@@ -70,7 +70,7 @@ int main()
 	ppts = load_ppts();
 
 	// Create the mesh
-	int nnt = 500;
+	int nnt = 200;
 	Mesh mesh_n;
 	mesh_n.load(nnt, ppts.L_t);
 
