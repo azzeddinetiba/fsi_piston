@@ -176,6 +176,8 @@ MatrixXf Fluid::shock_capture(VectorXf vcor, MatrixXi conec, MatrixXf vmgn, Matr
 		cel2(nelt, 2), cel3(nelt, 2), du(nnt, ndln);
 	VectorXi kloce;
 	LLT<MatrixXf> llt_vmgnp1;
+	SparseMatrix<float> s_vmgn(nnt, nnt);
+	SparseMatrix<float> s_vmgnp1(nnt, nnt);
 	cel1 = MatrixXf::Zero(nnt, 2);
 	cel2 = MatrixXf::Zero(nnt, 2);
 	cel3 = MatrixXf::Zero(nnt, 2);
@@ -191,17 +193,23 @@ MatrixXf Fluid::shock_capture(VectorXf vcor, MatrixXi conec, MatrixXf vmgn, Matr
 
 	cd = .4;
 
-	llt_vmgnp1.compute(vmgnp1);
+	// llt_vmgnp1.compute(vmgnp1);
+	s_vmgn = vmgn.sparseView();
+	s_vmgnp1 = vmgnp1.sparseView();
+
+	ConjugateGradient<SparseMatrix<float> > cg_vmgnp1;
+	cg_vmgnp1.compute(s_vmgnp1);
+
 
 	for (int j = 0; j < ndln; j++)
 	{
 		vresj = vres.col(j);
 		vsolj = vsol.col(j);
 
-		vresj = vresj + (vmgn - vmgnp1) * vsolj;
+		vresj = vresj + (s_vmgn - s_vmgnp1) * vsolj;
 
 		vdul = ((vresj + cd * vmgn * vsolj - cd * (xlumpm.array() * vsolj.array()).matrix()).array() / xlumpm.array()).matrix();
-		vduh = llt_vmgnp1.solve(vresj);
+		vduh = cg_vmgnp1.solve(vresj);
 
 		vduh3.col(j) = vduh;
 		vdul3.col(j) = vdul;
@@ -369,10 +377,11 @@ void Fluid::solve(float Delta_t, float u_dot_t)
 	presL2t.push_back(vpres(fl_mesh.nnt - 1));
 }
 
-void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vector<VectorXf, aligned_allocator<VectorXf>> &histo_velocity,
-					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation, vector<VectorXf, aligned_allocator<VectorXf>> &histo_pres_field,
-					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho, vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho_v,
-					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_rho_e, Mesh &msh, float Delta_t, float u_dot_t, int istep)
+void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vector<VectorXf, aligned_allocator<VectorXf> > &histo_velocity,
+					   vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation, vector<VectorXf, aligned_allocator<VectorXf> > &histo_pres_field,
+					   vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho, vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho_v,
+					   vector<VectorXf, aligned_allocator<VectorXf> > &histo_rho_e, vector<VectorXf, aligned_allocator<VectorXf> > &histo_mesh, 
+					   Mesh &msh, float Delta_t, float u_dot_t, int istep)
 {
 
 	int nnt = msh.nnt;
@@ -395,4 +404,6 @@ void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vec
 	histo_rho.push_back(get_vsol().col(0));
 	histo_rho_v.push_back(get_vsol().col(1));
 	histo_rho_e.push_back(get_vsol().col(2));
+
+	histo_mesh.push_back(fl_mesh_np1.get_vcor());
 }
