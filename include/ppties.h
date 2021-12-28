@@ -11,6 +11,7 @@ using namespace std;
 struct properties
 {
 	vector<float> vprel;
+	float Coeff;
 	float Lspe;
 	float Lsp0;
 	float L_0;

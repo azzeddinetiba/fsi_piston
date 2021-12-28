@@ -20,6 +20,7 @@
 #include "Mesh.h"
 #include "Fluid.h"
 #include "FSI.h"
+#include "config.h"
 
 using namespace Eigen;
 using namespace std;
@@ -28,10 +29,12 @@ properties load_ppts()
 {
 	properties ppts;
 
-	ppts.L_0 = 1;
-	ppts.A = 1;
+	ppts.Coeff = coeff; // Fraction of natural structural period, giving the total period of simulation
 
-	ppts.U_0 = .2;
+	ppts.L_0 = 1; // Initial Gas Chamber Length (not including the initial displacement)
+	ppts.A = 1; // Section
+
+	ppts.U_0 = .2; // Initial displacement
 	ppts.L_t = ppts.L_0 + ppts.U_0;
 
 	ppts.gam = 1.4; // the specific heat ratio of the gas
@@ -54,7 +57,7 @@ properties load_ppts()
 	ppts.e_init = ppts.pres_init / ppts.gamm1 / ppts.rho_init + 0.5 * pow(ppts.u_init, 2.);
 
 	ppts.vprel.push_back(1e7);
-	ppts.vprel.push_back(1000);
+	ppts.vprel.push_back(mass);
 
 	ppts.Lsp0 = 1.2;
 	ppts.Lspe = ppts.Lsp0 - (ppts.pres_init0 - ppts.p_ext) * ppts.A / ppts.vprel[0];
@@ -70,7 +73,7 @@ int main()
 	ppts = load_ppts();
 
 	// Create the mesh
-	int nnt = 200;
+	int nnt = nmesh;
 	Mesh mesh_n;
 	mesh_n.load(nnt, ppts.L_t);
 

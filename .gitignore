@@ -11,9 +11,9 @@
 
 *.exe
 test*.cpp
+hello.cpp
 
 
-src/hello.cpp
 
 .DS_Store
 
