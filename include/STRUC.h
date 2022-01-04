@@ -24,7 +24,8 @@ public:
     void set_BC(float presL2t_ind);
     void solve(float Delta_T);
     void store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation,
-                    vector<float> &Force_ext, vector<float> &Ec, vector<float> &Ep, vector<float> &Em);
+                    vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec, 
+                    vector<float> &Ep, vector<float> &Em);
     float get_u();
     float get_u_dot_t();
     float get_u_double_dot_t();

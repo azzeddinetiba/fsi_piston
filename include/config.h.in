@@ -2,7 +2,7 @@
 #define CONFIG_H_IN
  
 #define coeff @coeff@f
-#define mass @mass@
+#define mass @mass@f
 #define nmesh @nmesh@
  
 #endif // CONFIG_H_IN

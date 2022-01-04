@@ -32,7 +32,7 @@ properties load_ppts()
 	ppts.Coeff = coeff; // Fraction of natural structural period, giving the total period of simulation
 
 	ppts.L_0 = 1; // Initial Gas Chamber Length (not including the initial displacement)
-	ppts.A = 1; // Section
+	ppts.A = 1;	  // Section
 
 	ppts.U_0 = .2; // Initial displacement
 	ppts.L_t = ppts.L_0 + ppts.U_0;

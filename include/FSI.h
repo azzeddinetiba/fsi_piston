@@ -18,7 +18,7 @@ using namespace Eigen;
 class FSI
 {
 public:
-	vector<float> histo_pressure, Force_ext, Ec, Ep, Em;
+	vector<float> histo_pressure, histo_accel, Force_ext, Ec, Ep, Em;
 	vector<float> Imp_fl;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_velocity;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_deformation;

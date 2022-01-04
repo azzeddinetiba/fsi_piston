@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.22.0)
+cmake_minimum_required(VERSION 3.16.0)
 project(fsi_piston)
 
 #Parameters
-set (coeff 1.2 CACHE STRING "")
-set (mass 1000 CACHE STRING "")
-set (nmesh 200 CACHE STRING "")
+set (coeff 2.5 CACHE STRING "")
+set (mass 1000. CACHE STRING "")
+set (nmesh 250 CACHE STRING "")
 configure_file (include/config.h.in ../include/config.h @ONLY)
 
 #Include libraries

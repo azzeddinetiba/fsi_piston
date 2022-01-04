@@ -1,5 +1,7 @@
 /.metadata/
 /Debug/
+/build/
+/Results/*.txt
 
 
 .project

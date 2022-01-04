@@ -35,6 +35,7 @@ void FSI::export_results()
 	ofstream file4("../Results/results_rho_e.txt");
 	ofstream file5("../Results/results_v.txt");
 	ofstream file7("../Results/results_mesh.txt");
+	ofstream file8("../Results/results_m_accel.txt");
 
 	for (int i = 0; i < istep + 1; i++)
 	{
@@ -66,6 +67,11 @@ void FSI::export_results()
 		if (file7.is_open())
 		{
 			file7 << histo_mesh[i] << '\n';
+		}
+
+		if (file8.is_open())
+		{
+			file8 << histo_accel[i] << '\n';
 		}
 	}
 }
@@ -115,6 +121,8 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 
 		t.push_back(Total_time);
 
+		// Solve the structural problem
+
 		// Apply the piston pressure value from the fluid problem to the solid problem
 		if (istep == 0)
 		{
@@ -126,10 +134,10 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 		}
 		struc.set_BC(ppiston);
 
-		// Solve the structural problem
+		// Get the structure solution
 		struc.solve(Delta_t);
 		u_dot_t = struc.get_u_dot_t();
-		struc.store_data(histo_deformation, Force_ext, Ec, Ep, Em);
+		struc.store_data(histo_deformation, histo_accel, Force_ext, Ec, Ep, Em);
 
 		// Solve the fluid problem
 		fluid.solve(Delta_t, u_dot_t);
