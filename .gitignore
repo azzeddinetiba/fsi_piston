@@ -15,8 +15,9 @@
 test*.cpp
 hello.cpp
 
-
+include/config.h
 
 .DS_Store
 
 */.ipynb_checkpoints*/*
+*/*.ipynb*/*

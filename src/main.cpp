@@ -56,12 +56,15 @@ properties load_ppts()
 	ppts.u_init = 0.;
 	ppts.e_init = ppts.pres_init / ppts.gamm1 / ppts.rho_init + 0.5 * pow(ppts.u_init, 2.);
 
-	ppts.vprel.push_back(1e7);
-	ppts.vprel.push_back(mass);
+	ppts.vprel.push_back(1e7);	// Spring rigidity
+	ppts.vprel.push_back(mass); // Spring mass
+	ppts.spring_model = "nonlinear";
 
-	ppts.Lsp0 = 1.2;
-	ppts.Lspe = ppts.Lsp0 - (ppts.pres_init0 - ppts.p_ext) * ppts.A / ppts.vprel[0];
+	ppts.Lsp0 = 1.2;	// Unstretched spring length
+	ppts.Lspe = ppts.Lsp0 - (ppts.pres_init0 - ppts.p_ext) * ppts.A / ppts.vprel[0]; // initial spring length
 
+	ppts.umax = 0.000175897739808; // Maximum spring displacements for linear spring model ('C' Model)
+	ppts.umax = 0.001;
 	return ppts;
 }
 

@@ -14,17 +14,19 @@ using namespace Eigen;
 class STRUC
 {
 
-    float u_t, u_dot_t, u_double_dot_t, Ppiston;
+    float u_t, u_dot_t, u_double_dot_t, Ppiston, u0, delta_u;
     properties struc_ppts;
 
 public:
-    float freq0, omega0, T0;
+    float freq0, omega0, T0, mu;
     STRUC(properties ppt);
     void set_ppts(properties ppt);
     void set_BC(float presL2t_ind);
     void solve(float Delta_T);
+    void lin_model_solve(float Delta_t);
+    void nonlin_model_solve(float Delta_t);
     void store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation,
-                    vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec, 
+                    vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec,
                     vector<float> &Ep, vector<float> &Em);
     float get_u();
     float get_u_dot_t();

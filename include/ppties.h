@@ -31,6 +31,8 @@ struct properties
 	float u_init;
 	float e_init;
 	float temp_init0;
+	float umax;
+	string spring_model;
 };
 
 inline properties load_ppts();

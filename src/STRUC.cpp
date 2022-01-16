@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 
 #include "STRUC.h"
+#include "algs.h"
 
 using namespace Eigen;
 using namespace std;
@@ -33,7 +34,7 @@ float STRUC::get_Ppiston()
 	return Ppiston;
 }
 
-void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation,
+void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation,
 					   vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec,
 					   vector<float> &Ep, vector<float> &Em)
 {
@@ -58,9 +59,9 @@ void STRUC::set_ppts(properties ppt)
 	struc_ppts = ppt;
 }
 
-void STRUC::solve(float Delta_t)
+void STRUC::lin_model_solve(float Delta_t)
 {
-	float pres_init0, vkg, vmg, vfg, vkt, vres, vdu, inter, A;
+	float pres_init0, vkg, vmg, vfg, vkt, vres, inter, A;
 	pres_init0 = struc_ppts.pres_init0;
 	A = struc_ppts.A;
 	vkg = struc_ppts.vprel[0];
@@ -72,10 +73,58 @@ void STRUC::solve(float Delta_t)
 	vres = pow(Delta_t, 2) * vfg + 4 * Delta_t * vmg * u_dot_t +
 		   pow(Delta_t, 2) * vmg * u_double_dot_t - pow(Delta_t, 2) * vkg * u_t;
 
-	vdu = vres / vkt;
+	delta_u = vres / vkt;
+}
 
-	u_t += vdu;
-	inter = 4 / pow(Delta_t, 2) * vdu - 4 / Delta_t * u_dot_t -
+void STRUC::nonlin_model_solve(float Delta_t)
+{
+	float vkg, vmg, vfg, vkt, vres, inter, A;
+	float res, jacobian, du;
+	int i = 0;
+	newton nonlin_sys;
+
+	A = struc_ppts.A;
+
+	nonlin_sys.initialize();
+	delta_u = nonlin_sys.get_init();
+	std::cout << "\n Newton iterations ... ";
+	std::cout << "\n";
+	while (nonlin_sys.criterion(delta_u))
+	{
+
+		res = pow(Delta_t, 2) * (A * Ppiston + struc_ppts.vprel[0] * u0 + struc_ppts.vprel[1] * u_double_dot_t -
+								 struc_ppts.vprel[0] * u_t - struc_ppts.vprel[0] * delta_u - mu * (u_t - u0 + delta_u) * abs(u_t + delta_u - u0)) -
+			  4 * struc_ppts.vprel[1] * delta_u + 4 * struc_ppts.vprel[1] * u_dot_t * Delta_t;
+
+		if ((u_t - u0 + delta_u) > 0.)
+		{
+			jacobian = -4 * struc_ppts.vprel[1] + pow(Delta_t, 2) * (-struc_ppts.vprel[0] + 2 * mu * (u_t - u0) + 2 * mu * delta_u);
+		}
+		else
+		{
+			jacobian = -4 * struc_ppts.vprel[1] + pow(Delta_t, 2) * (-struc_ppts.vprel[0] - 2 * mu * (u_t - u0) - 2 * mu * delta_u);
+		}
+
+		nonlin_sys.set_residual(res);
+		nonlin_sys.set_jacobian(jacobian);
+		delta_u += nonlin_sys.advance();
+	}
+}
+
+void STRUC::solve(float Delta_t)
+{
+	float inter;
+	if (struc_ppts.spring_model == "linear")
+	{
+		lin_model_solve(Delta_t);
+	}
+	else
+	{
+		nonlin_model_solve(Delta_t);
+	}
+
+	u_t += delta_u;
+	inter = 4 / pow(Delta_t, 2) * delta_u - 4 / Delta_t * u_dot_t -
 			u_double_dot_t;
 	u_dot_t = u_dot_t + Delta_t / 2 * (u_double_dot_t + inter);
 	u_double_dot_t = inter;
@@ -88,5 +137,17 @@ void STRUC::initialize(float presPist)
 	float vfg0;
 	vfg0 = (presPist - 0 * struc_ppts.pres_init0) * struc_ppts.A;
 	u_dot_t = 0;
-	u_double_dot_t = (vfg0 + struc_ppts.vprel[0] * (struc_ppts.Lspe - u_t - struc_ppts.Lsp0)) / struc_ppts.vprel[1];
+	if (struc_ppts.spring_model == "linear")
+	{
+		u_double_dot_t = (vfg0 + struc_ppts.vprel[0] * (struc_ppts.Lspe - u_t - struc_ppts.Lsp0)) / struc_ppts.vprel[1];
+	}
+	else
+	{
+		mu = struc_ppts.vprel[0] / struc_ppts.umax;
+		u0 = (-struc_ppts.vprel[0] + sqrt(pow(struc_ppts.vprel[0], 2) + 4 * mu * struc_ppts.A * struc_ppts.pres_init0)) / (-2 * mu);
+
+		u_double_dot_t = (struc_ppts.A * presPist + struc_ppts.vprel[0] * (u0 - u_t) -
+						  mu * (u_t - u0) * abs(u_t - u0)) /
+						 struc_ppts.vprel[1];
+	}
 }
