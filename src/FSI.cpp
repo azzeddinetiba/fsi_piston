@@ -36,6 +36,10 @@ void FSI::export_results()
 	ofstream file5("../Results/results_v.txt");
 	ofstream file7("../Results/results_mesh.txt");
 	ofstream file8("../Results/results_m_accel.txt");
+	ofstream file9("../Results/results_Ec.txt");
+	ofstream file10("../Results/results_Ep.txt");
+	ofstream file11("../Results/results_Em.txt");
+	ofstream file12("../Results/results_Imp_Fl.txt");
 
 	for (int i = 0; i < istep + 1; i++)
 	{
@@ -72,6 +76,22 @@ void FSI::export_results()
 		if (file8.is_open())
 		{
 			file8 << histo_accel[i] << '\n';
+		}
+		if (file9.is_open())
+		{
+			file9 << Ec[i] << '\n';
+		}
+		if (file10.is_open())
+		{
+			file10 << Ep[i] << '\n';
+		}
+		if (file11.is_open())
+		{
+			file11 << Em[i] << '\n';
+		}
+		if (file12.is_open())
+		{
+			file12 << Imp_fl[i] << '\n';
 		}
 	}
 }

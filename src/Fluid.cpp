@@ -389,9 +389,9 @@ void Fluid::store_data(vector<float> &histo_pressure, vector<float> &Imp_fl, vec
 	VectorXf wx = msh.get_wx();
 
 	if (istep == 0)
-		Imp_fl.push_back(presL2t[0] * fluid_ppts.A * u_dot_t * Delta_t);
+		Imp_fl.push_back(-presL2t[0] * fluid_ppts.A * u_dot_t * Delta_t);
 	else
-		Imp_fl.push_back(Imp_fl[istep - 1] + presL2t[istep] * fluid_ppts.A * u_dot_t * Delta_t);
+		Imp_fl.push_back(Imp_fl[istep - 1] - presL2t[istep] * fluid_ppts.A * u_dot_t * Delta_t);
 
 	hist_veloc(0) = u_dot_t;
 	hist_veloc(1) = wx(nnt - 1);
