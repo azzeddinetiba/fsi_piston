@@ -144,14 +144,7 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 		// Solve the structural problem
 
 		// Apply the piston pressure value from the fluid problem to the solid problem
-		if (istep == 0)
-		{
-			ppiston = fluid.presL2t[0];
-		}
-		else
-		{
-			ppiston = fluid.presL2t[istep - 1];
-		}
+		ppiston = fluid.presL2t[istep];
 		struc.set_BC(ppiston);
 
 		// Get the structure solution
