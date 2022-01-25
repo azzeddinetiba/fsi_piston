@@ -93,7 +93,7 @@ void STRUC::nonlin_model_solve(float Delta_t)
 	{
 
 		res = pow(Delta_t, 2) * (A * Ppiston + struc_ppts.vprel[0] * u0 + struc_ppts.vprel[1] * u_double_dot_t -
-								 struc_ppts.vprel[0] * u_t - struc_ppts.vprel[0] * delta_u - mu * (u_t - u0 + delta_u) * abs(u_t + delta_u - u0)) -
+								 struc_ppts.vprel[0] * u_t - struc_ppts.vprel[0] * delta_u - mu * (u_t - u0 + delta_u) * std::abs(u_t + delta_u - u0)) -
 			  4 * struc_ppts.vprel[1] * delta_u + 4 * struc_ppts.vprel[1] * u_dot_t * Delta_t;
 
 		if ((u_t - u0 + delta_u) > 0.)
@@ -147,7 +147,7 @@ void STRUC::initialize(float presPist)
 		u0 = (-struc_ppts.vprel[0] + sqrt(pow(struc_ppts.vprel[0], 2) + 4 * mu * struc_ppts.A * struc_ppts.pres_init0)) / (-2 * mu);
 
 		u_double_dot_t = (struc_ppts.A * presPist + struc_ppts.vprel[0] * (u0 - u_t) -
-						  mu * (u_t - u0) * abs(u_t - u0)) /
+						  mu * (u_t - u0) * std::abs(u_t - u0)) /
 						 struc_ppts.vprel[1];
 	}
 }

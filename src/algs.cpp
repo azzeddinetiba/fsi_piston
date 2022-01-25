@@ -21,11 +21,11 @@ bool newton::criterion(float delta_x)
     if (iter == 0)
         criter = true;
     else
-        criter = iter < max_iter && (abs(dx) / abs(delta_x)) > tolerance;
+        criter = iter < max_iter && (std::abs(dx) / std::abs(delta_x)) > tolerance;
 
-    if (!criter && iter != 0)
+    if (!criter && iter != max_iter)
     {
-        std::cout << "\nSystem converged at iteration " << iter << ", residual = " << residual << std::endl;
+        std::cout << "\nSystem converged at iteration " << iter << ", residual = " << residual << " \n";
     }
     return criter;
 }
