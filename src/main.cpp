@@ -28,6 +28,7 @@ using namespace std;
 properties load_ppts()
 {
 	properties ppts;
+	float a, b, c, interm;
 
 	ppts.Coeff = coeff; // Fraction of natural structural period, giving the total period of simulation
 
@@ -59,11 +60,31 @@ properties load_ppts()
 	ppts.vprel.push_back(1e7);	// Spring rigidity
 	ppts.vprel.push_back(mass); // Spring mass
 	ppts.spring_model = "nonlinear";
+	ppts.nln_order = 3;
 
-	ppts.Lsp0 = 1.2;																 // Unstretched spring length
-	ppts.Lspe = ppts.Lsp0 - (ppts.pres_init0 - ppts.p_ext) * ppts.A / ppts.vprel[0]; // initial spring length
-
-	ppts.umax = 0.2; // Maximum spring displacements for linear spring model ('C' Model)
+	ppts.Lsp0 = 1.2; // Unstretched spring length
+	if (ppts.spring_model == "nonlinear")
+	{
+		ppts.umax = 0.2; // Maximum spring displacements for linear spring model ('C' Model)
+		ppts.mu = ppts.vprel[0] / ppts.umax;
+		if (ppts.nln_order == 2)
+		{
+			ppts.u0 = (-ppts.vprel[0] + sqrt(pow(ppts.vprel[0], 2) + 4 * ppts.mu * ppts.A * ppts.pres_init0)) / (-2 * ppts.mu);
+		}
+		else
+		{
+			a = ppts.vprel[0];
+			b = ppts.mu;
+			c = ppts.pres_init0;
+			interm = pow((((std::sqrt((27 * b * pow(c, 2) + 4 * pow(a, 3)) / b)) / (b * 2 * pow(3, (3 / 2)))) - c / (2 * b)), (1 / 3));
+			ppts.u0 = interm - a / (3 * b * interm);
+		}
+		ppts.Lspe = ppts.Lsp0 + ppts.u0;
+	}
+	else
+	{
+		ppts.Lspe = ppts.Lsp0 - (ppts.pres_init0 - ppts.p_ext) * ppts.A / ppts.vprel[0]; // initial spring length
+	}
 
 	return ppts;
 }

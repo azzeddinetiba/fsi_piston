@@ -25,7 +25,7 @@ bool newton::criterion(float delta_x)
 
     if (!criter && iter != max_iter)
     {
-        std::cout << "\nSystem converged at iteration " << iter << ", residual = " << residual << " \n";
+        std::cout << "\nSystem converged at iteration " << iter << ", residual = " << residual << " N \n";
     }
     return criter;
 }
