@@ -51,7 +51,7 @@ void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_def
 		}
 		else
 		{
-			Ep[Ep.size() - 1] += struc_ppts.mu * pow(u_t, 4) / 4;
+			Ep[Ep.size() - 1] += struc_ppts.mu * pow(struc_ppts.u0 - u_t, 4) / 4;
 		}
 	}
 
