@@ -39,13 +39,18 @@ void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_def
 					   vector<float> &Ep, vector<float> &Em)
 {
 	Ec.push_back(.5 * struc_ppts.vprel[1] * pow(u_dot_t, 2));
-	Ep.push_back(.5 * struc_ppts.vprel[0] * pow((struc_ppts.Lspe - u_t - struc_ppts.Lsp0), 2));
 	if (struc_ppts.spring_model == "nonlinear")
 	{
+		Ep.push_back(.5 * struc_ppts.vprel[0] * pow((u0 - u_t), 2));
+
 		if ((u0 - u_t) > 0)
 			Ep[Ep.size() - 1] += mu * (1 / 3) * pow((u0 - u_t), 3);
 		else
 			Ep[Ep.size() - 1] -= mu * (1 / 3) * pow((u0 - u_t), 3);
+	}
+	else
+	{
+		Ep.push_back(.5 * struc_ppts.vprel[0] * pow((struc_ppts.Lspe - u_t - struc_ppts.Lsp0), 2));
 	}
 	Em.push_back(Ec[Ec.size() - 1] + Ep[Ep.size() - 1]);
 	histo_accel.push_back(u_double_dot_t);
