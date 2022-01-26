@@ -75,8 +75,8 @@ properties load_ppts()
 		{
 			a = ppts.vprel[0];
 			b = ppts.mu;
-			c = ppts.pres_init0;
-			interm = pow((((std::sqrt((27 * b * pow(c, 2) + 4 * pow(a, 3)) / b)) / (b * 2 * pow(3, (3 / 2)))) - c / (2 * b)), (1 / 3));
+			c = ppts.A * ppts.pres_init0;
+			interm = pow((((std::sqrt((27 * b * pow(c, 2) + 4 * pow(a, 3)) / b)) / (b * 2 * pow(3, (3. / 2.)))) - c / (2 * b)), (1. / 3.));
 			ppts.u0 = interm - a / (3 * b * interm);
 		}
 		ppts.Lspe = ppts.Lsp0 + ppts.u0;
