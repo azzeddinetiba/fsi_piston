@@ -73,6 +73,7 @@ properties load_ppts()
 		}
 		else
 		{
+			ppts.mu *= 8;
 			a = ppts.vprel[0];
 			b = ppts.mu;
 			c = ppts.A * ppts.pres_init0;
