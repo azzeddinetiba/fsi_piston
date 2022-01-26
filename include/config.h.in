@@ -4,5 +4,6 @@
 #define coeff @coeff@f
 #define mass @mass@f
 #define nmesh @nmesh@
+#define mu_coeff @mu_coeff@
  
 #endif // CONFIG_H_IN

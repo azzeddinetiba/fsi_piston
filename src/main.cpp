@@ -66,14 +66,13 @@ properties load_ppts()
 	if (ppts.spring_model == "nonlinear")
 	{
 		ppts.umax = 0.2; // Maximum spring displacements for linear spring model ('C' Model)
-		ppts.mu = ppts.vprel[0] / ppts.umax;
+		ppts.mu = mu_coeff * ppts.vprel[0] / ppts.umax;
 		if (ppts.nln_order == 2)
 		{
 			ppts.u0 = (-ppts.vprel[0] + sqrt(pow(ppts.vprel[0], 2) + 4 * ppts.mu * ppts.A * ppts.pres_init0)) / (-2 * ppts.mu);
 		}
 		else
 		{
-			ppts.mu *= 8;
 			a = ppts.vprel[0];
 			b = ppts.mu;
 			c = ppts.A * ppts.pres_init0;
