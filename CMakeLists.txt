@@ -5,6 +5,7 @@ project(fsi_piston)
 set (coeff 2.5 CACHE STRING "")
 set (mass 1000. CACHE STRING "")
 set (nmesh 250 CACHE STRING "")
+set (mu_coeff 6 CACHE STRING "")
 configure_file (include/config.h.in ../include/config.h @ONLY)
 
 #Include libraries

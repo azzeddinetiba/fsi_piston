@@ -14,11 +14,11 @@ using namespace Eigen;
 class STRUC
 {
 
-    float u_t, u_dot_t, u_double_dot_t, Ppiston, u0, delta_u;
+    float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u;
     properties struc_ppts;
 
 public:
-    float freq0, omega0, T0, mu;
+    float freq0, omega0, T0;
     STRUC(properties ppt);
     void set_ppts(properties ppt);
     void set_BC(float presL2t_ind);
