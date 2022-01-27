@@ -59,7 +59,7 @@ properties load_ppts()
 
 	ppts.vprel.push_back(1e7);	// Spring rigidity
 	ppts.vprel.push_back(mass); // Spring mass
-	ppts.spring_model = "nonlinear";
+	ppts.spring_model = "linear";
 	ppts.nln_order = 3;
 
 	ppts.Lsp0 = 1.2; // Unstretched spring length
