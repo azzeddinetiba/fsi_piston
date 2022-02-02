@@ -32,7 +32,7 @@ cd build
 cmake ..
 make
 ```
-The building process has been tested under Windows 10 with g++ 9.2.0, cmake 3.22.0 and Eigen-3.4.0.
+The building process has been tested under Windows 10 with g++ 9.2.0, cmake 3.22.0 and Eigen-3.4.0, and in Ubuntu 20 with g++ 9.3.0 and cmake 3.16.3.
 
 ## Usage
 
@@ -49,15 +49,15 @@ If indeed the ``` Results/``` folder is in the project directory, results will b
   Parameters in this case should be modified directly from the ``` include/configure.h/``` file, instead of modifying via cmake (see next part).
 
 ## Problem parameters
- You can tune the __spring mass__, __number of nodes__ in the fluid domain, and the coefficient to multiply the structural natural period to give the total simulation time (see the problem details in the paper), using respectively the three flags : 
+ You can tune the __spring mass__, __number of nodes__ in the fluid domain, the coefficient to multiply the structural natural period to give the total simulation time (see the problem details in the paper), and the __nonlinear term coefficient__, using respectively the four flags : 
    ```sh
-  mass              nmesh              coeff
+  mass              nmesh              coeff             mu_coeff
   ```
 
 eg
 
    ```sh
-  cmake -Dcoeff="1.2" -Dmass="1000" -Dnmesh="200" ..
+  cmake -Dcoeff="1.2" -Dmass="1000." -Dnmesh="200" -Dmu_coeff="6" ..
   ```
 
 
