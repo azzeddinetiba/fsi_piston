@@ -191,4 +191,8 @@ void STRUC::initialize(float presPist)
 							 struc_ppts.vprel[1];
 		}
 	}
+	if (struc_ppts.rom_in_struc)
+	{
+		
+	}
 }

@@ -21,9 +21,13 @@
 #include "Fluid.h"
 #include "FSI.h"
 #include "config.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
+#include <pybind11/eigen.h>
 
 using namespace Eigen;
 using namespace std;
+namespace py = pybind11;
 
 properties load_ppts()
 {
@@ -61,6 +65,7 @@ properties load_ppts()
 	ppts.vprel.push_back(mass); // Spring mass
 	ppts.spring_model = "linear";
 	ppts.nln_order = 3;
+	ppts.rom_in_struc = true;
 
 	ppts.Lsp0 = 1.2; // Unstretched spring length
 	if (ppts.spring_model == "nonlinear")
@@ -86,6 +91,8 @@ properties load_ppts()
 		ppts.Lspe = ppts.Lsp0 - (ppts.pres_init0 - ppts.p_ext) * ppts.A / ppts.vprel[0]; // initial spring length
 	}
 
+	ppts.dt = 7.09e-6;
+
 	return ppts;
 }
 
@@ -95,6 +102,13 @@ int main()
 	// Geometrical and physical properties
 	properties ppts;
 	ppts = load_ppts();
+	float dt = 0;
+
+	if (ppts.rom_in_struc)
+	{
+		py::scoped_interpreter guard{};
+		dt = ppts.dt;
+	}
 
 	// Create the mesh
 	int nnt = nmesh;
@@ -113,7 +127,7 @@ int main()
 	FSI fsi_piston(structure_model.T0);
 
 	// Solve the problem
-	fsi_piston.solve(structure_model, fluid_model);
+	fsi_piston.solve(structure_model, fluid_model, dt);
 
 	// Export the results into .txt files
 	fsi_piston.export_results();
