@@ -133,9 +133,13 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 
 		// Compute the next time step value respecting CFL
 		if (d_t < 1e-9)
+		{
 			Delta_t = fluid.timestep(vcor_np1, vsol, wx, vcelerity, CFL);
+		}
 		else
+		{
 			Delta_t = d_t;
+		}
 		Delta_t_storage.push_back(Delta_t);
 		Total_time += Delta_t;
 

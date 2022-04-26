@@ -63,7 +63,7 @@ properties load_ppts()
 
 	ppts.vprel.push_back(1e7);	// Spring rigidity
 	ppts.vprel.push_back(mass); // Spring mass
-	ppts.spring_model = "linear";
+	ppts.spring_model = "nonlinear";
 	ppts.nln_order = 3;
 	ppts.rom_in_struc = true;
 
@@ -102,12 +102,11 @@ int main()
 	// Geometrical and physical properties
 	properties ppts;
 	ppts = load_ppts();
-	float dt = 0;
+	float dt = 0.;
 
 	if (ppts.rom_in_struc)
 	{
-		py::scoped_interpreter guard{};
-		dt = ppts.dt;
+   		py::initialize_interpreter();
 	}
 
 	// Create the mesh
@@ -122,7 +121,10 @@ int main()
 	// Create the structure FEM model
 	STRUC structure_model(ppts);
 	structure_model.initialize(fluid_model.get_vpres()(nnt - 1));
-
+	if (ppts.rom_in_struc)
+	{
+		dt = structure_model.dt_export;
+	}
 	// Create the fluid-strucure interaction coupling
 	FSI fsi_piston(structure_model.T0);
 
@@ -131,6 +133,11 @@ int main()
 
 	// Export the results into .txt files
 	fsi_piston.export_results();
+
+	if (ppts.rom_in_struc)
+	{
+		py::finalize_interpreter();
+	}
 
 	return 0;
 }

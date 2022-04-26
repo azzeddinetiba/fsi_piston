@@ -11,9 +11,10 @@ configure_file (include/config.h.in ../include/config.h @ONLY)
 #Include libraries
 include_directories(include)
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(pybind11 REQUIRED)
 
 #Add source files
 file(GLOB SOURCES "src/*.cpp")
 
 add_executable(fsi_piston ${SOURCES})
-target_link_libraries (fsi_piston Eigen3::Eigen)
+target_link_libraries(fsi_piston PRIVATE Eigen3::Eigen pybind11::embed)
