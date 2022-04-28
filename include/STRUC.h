@@ -30,7 +30,7 @@ public:
     void solve(float Delta_T);
     void lin_model_solve(float Delta_t);
     void nonlin_model_solve(float Delta_t);
-    void rom_model_solve();
+    void rom_model_solve(float Delta_t);
     void store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation,
                     vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec,
                     vector<float> &Ep, vector<float> &Em);

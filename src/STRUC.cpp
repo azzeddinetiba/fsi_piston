@@ -143,9 +143,10 @@ void STRUC::nonlin_model_solve(float Delta_t)
 	}
 }
 
-void STRUC::rom_model_solve()
+void STRUC::rom_model_solve(float Delta_t)
 {
 	VectorXf pred(3), x_input(5);
+	py::object pred_ob;
 
 	x_input(0, 0) = u_t;
 	x_input(1, 0) = pow(u_t, 2);
@@ -153,19 +154,50 @@ void STRUC::rom_model_solve()
 	x_input(3, 0) = 1.;
 	x_input(4, 0) = Ppiston;
 
-	auto locals = py::dict("t"_a = 0, "x_input"_a=x_input, "drom"_a=drom);
+	if (struc_ppts.cont_rom == false)
+	{
+		auto locals = py::dict("t"_a = 0, "x_input"_a=x_input, "drom"_a=drom);
 		py::exec(R"(
-	from rom_am import EDMD, ROM
-	drom = locals()["drom"]
-	pred = drom.predict(t = locals()["t"], x_input = locals()["x_input"])
+			from rom_am import EDMD, ROM
+			drom = locals()["drom"]
+			pred = drom.predict(t = locals()["t"], x_input = locals()["x_input"])
 		)", py::globals(), locals);
+		py::module_ np = py::module_::import("numpy");
+		pred_ob = np.attr("real")(locals["pred"]);
+	}
+	else
+	{
+		//py::dict globals = py::globals();
+		auto globals = py::dict("t"_a = 0, "x_input"_a=x_input, "erom"_a=drom, "dt"_a=Delta_t, "u_dot_t"_a=u_dot_t);
+		py::exec(R"(
+			from rom_am import EDMD
+			import numpy as np
+			from scipy.integrate import solve_ivp
+			erom = locals()["erom"]
+			dt = locals()["dt"]
+			x_input = locals()["x_input"]
 
-	py::module_ np = py::module_::import("numpy");
-	py::object pred_ob = np.attr("real")(locals["pred"]);
+			prev_u_t = x_input[0]
+			prev_u_dot_t = locals()["u_dot_t"]
+			pressure = x_input[-1]
+
+			block_m = np.block([[np.zeros((1, 5)), np.array([1])], [
+				erom.model.A, np.array([0])]])
+			def cont_sys(y): return block_m @ np.concatenate((y[:1, :], y[:1, :]**2, y[:1, :]**3, np.ones(
+				(1, y.shape[1])), pressure * np.ones((1, y.shape[1])), y[1:2, :])).reshape((-1, y.shape[1]))
+			def f(t, y): return cont_sys(y)
+
+			sol = solve_ivp(f, [0, dt], np.array([prev_u_t, prev_u_dot_t]), t_eval=np.array([0, dt]), vectorized = True)
+			pred = np.array([[sol.y[0, -1]], [sol.y[1, -1]], [cont_sys(sol.y)[-1, -1]]])
+		)", globals, globals);
+		pred_ob = globals["pred"];
+	}
+
+
 	pred = pred_ob.cast<VectorXf>();
-	u_double_dot_t = pred(0, 0);
-	u_t = pred(1, 0);
-	u_dot_t = pred(2, 0);
+	u_t = pred(0, 0);
+	u_dot_t = pred(1, 0);
+	u_double_dot_t = pred(2, 0);
 }
 
 void STRUC::solve(float Delta_t)
@@ -173,7 +205,7 @@ void STRUC::solve(float Delta_t)
 	float inter;
 	if(struc_ppts.rom_in_struc)
 	{
-		rom_model_solve();
+		rom_model_solve(Delta_t);
 	}
 	else
 	{
@@ -226,26 +258,49 @@ void STRUC::initialize(float presPist)
 	{
 		py::dict globals = py::globals();
 
-		py::exec(R"(
-			import rom_am
-			import numpy as np		
-			train_data_disp = np.load("../References/train_data_disp.npy")
-			train_data_veloc = np.load("../References/train_data_velocity.npy")
-			train_data_accel = np.load("../References/train_data_accel.npy")
-			train_data_pres = np.load("../References/train_data_pres.npy")
-			train_dt = np.load("../References/train_dt.npy")
-			dt = train_dt[0]
-			X = train_data_disp[:1, :-1]
-			Y = np.vstack((train_data_accel[:1, 1::], train_data_disp[:1, 1::], train_data_veloc[:1, 1::]))
-			observables = {"X" : [lambda x : x, lambda x : x**2, lambda x : x**3, lambda x : np.ones((1, X.shape[1])), lambda x : train_data_pres[:, :-1]],  
-						"Y" : [lambda x : x]}
-			edmd = rom_am.EDMD()
-			drom = rom_am.ROM(edmd)
-			drom.decompose(X,  Y = Y, dt = dt, observables=observables)
-    	)", globals, globals);
+		if (struc_ppts.cont_rom == false)
+		{
+			py::exec(R"(
+				import rom_am
+				import numpy as np		
+				train_data_disp = np.load("../References/discrete/train_data_disp.npy")
+				train_data_veloc = np.load("../References/discrete/train_data_velocity.npy")
+				train_data_accel = np.load("../References/discrete/train_data_accel.npy")
+				train_data_pres = np.load("../References/discrete/train_data_pres.npy")
+				train_dt = np.load("../References/discrete/train_dt.npy")
+				dt = train_dt[0]
+				X = train_data_disp[:1, :-1]
+				Y = np.vstack((train_data_disp[:1, 1::], train_data_veloc[:1, 1::], train_data_accel[:1, 1::]))
+				observables = {"X" : [lambda x : x, lambda x : x**2, lambda x : x**3, lambda x : np.ones((1, X.shape[1])), lambda x : train_data_pres[:, :-1]],  
+							"Y" : [lambda x : x]}
+				edmd = rom_am.EDMD()
+				drom = rom_am.ROM(edmd)
+				drom.decompose(X,  Y = Y, dt = dt, observables=observables)
+			)", globals, globals);
+
+			py::object dt_ob = globals["dt"];
+			dt_export = dt_ob.cast<float>();
+
+		}
+		else
+		{
+			py::exec(R"(
+				import rom_am
+				import numpy as np		
+				train_disp = np.load("../References/continuous/train_disp.npy")
+				train_accel = np.load("../References/continuous/train_accel.npy")
+				train_pres = np.load("../References/continuous/train_pres.npy")
+				X = train_disp[:1, :].reshape((1, -1))
+				Y = train_accel
+				observables = {"X" : [lambda x : x, lambda x : x**2, lambda x : x**3, lambda x : np.ones((1, X.shape[1])), lambda x : train_pres],  
+								"Y" : [lambda x : x]}
+				edmd = rom_am.EDMD()
+				drom = rom_am.ROM(edmd)
+				drom.decompose(X,  Y = Y, dt = 0.1, observables=observables)
+			)", globals, globals); // dt is not important here
+			dt_export = 0.;
+		}
 
 		drom = globals["drom"];
-		py::object dt_ob = globals["dt"];
-		dt_export = dt_ob.cast<float>();
 	}
 }

@@ -66,6 +66,7 @@ properties load_ppts()
 	ppts.spring_model = "nonlinear";
 	ppts.nln_order = 3;
 	ppts.rom_in_struc = true;
+	ppts.cont_rom = true;
 
 	ppts.Lsp0 = 1.2; // Unstretched spring length
 	if (ppts.spring_model == "nonlinear")

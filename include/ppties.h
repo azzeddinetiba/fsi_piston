@@ -38,6 +38,7 @@ struct properties
 	string spring_model;
 	int nln_order;
 	bool rom_in_struc;
+	bool cont_rom;
 };
 
 inline properties load_ppts();
