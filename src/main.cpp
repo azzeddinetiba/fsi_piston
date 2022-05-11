@@ -21,13 +21,17 @@
 #include "Fluid.h"
 #include "FSI.h"
 #include "config.h"
+#if defined(_LINUX) | (_WIN32)
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
 #include <pybind11/eigen.h>
+#endif
 
 using namespace Eigen;
 using namespace std;
+#if defined(_LINUX) | (_WIN32)
 namespace py = pybind11;
+#endif
 
 properties load_ppts()
 {
@@ -65,7 +69,7 @@ properties load_ppts()
 	ppts.vprel.push_back(mass); // Spring mass
 	ppts.spring_model = "nonlinear";
 	ppts.nln_order = 3;
-	ppts.rom_in_struc = true;
+	ppts.rom_in_struc = false;
 	ppts.cont_rom = true;
 
 	ppts.Lsp0 = 1.2; // Unstretched spring length
@@ -104,11 +108,12 @@ int main()
 	properties ppts;
 	ppts = load_ppts();
 	float dt = 0.;
-
+	#if defined(_LINUX) | (_WIN32)
 	if (ppts.rom_in_struc)
 	{
    		py::initialize_interpreter();
 	}
+	#endif
 
 	// Create the mesh
 	int nnt = nmesh;
@@ -135,10 +140,12 @@ int main()
 	// Export the results into .txt files
 	fsi_piston.export_results();
 
+	#if defined(_LINUX) | (_WIN32)
 	if (ppts.rom_in_struc)
 	{
 		py::finalize_interpreter();
 	}
+	#endif
 
 	return 0;
 }

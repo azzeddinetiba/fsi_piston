@@ -146,7 +146,9 @@ void STRUC::nonlin_model_solve(float Delta_t)
 void STRUC::rom_model_solve(float Delta_t)
 {
 	VectorXf pred(3), x_input(5);
+	#if defined(_LINUX) | (_WIN32)
 	py::object pred_ob;
+	#endif
 
 	x_input(0, 0) = u_t;
 	x_input(1, 0) = pow(u_t, 2);
@@ -154,6 +156,7 @@ void STRUC::rom_model_solve(float Delta_t)
 	x_input(3, 0) = 1.;
 	x_input(4, 0) = Ppiston;
 
+	#if defined(_LINUX) | (_WIN32)
 	if (struc_ppts.cont_rom == false)
 	{
 		auto locals = py::dict("t"_a = 0, "x_input"_a=x_input, "drom"_a=drom);
@@ -195,6 +198,7 @@ void STRUC::rom_model_solve(float Delta_t)
 
 
 	pred = pred_ob.cast<VectorXf>();
+	#endif
 	u_t = pred(0, 0);
 	u_dot_t = pred(1, 0);
 	u_double_dot_t = pred(2, 0);
@@ -254,6 +258,7 @@ void STRUC::initialize(float presPist)
 							 struc_ppts.vprel[1];
 		}
 	}
+	#if defined(_LINUX) | (_WIN32)
 	if (struc_ppts.rom_in_struc)
 	{
 		py::dict globals = py::globals();
@@ -303,4 +308,5 @@ void STRUC::initialize(float presPist)
 
 		drom = globals["drom"];
 	}
+	#endif
 }

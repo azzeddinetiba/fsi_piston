@@ -19,9 +19,12 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     link_directories("C:/Users/azzed/anaconda3/libs")
 endif ()
 
-
 #Add source files
 file(GLOB SOURCES "src/*.cpp")
 
 add_executable(fsi_piston ${SOURCES})
-target_link_libraries(fsi_piston PRIVATE Eigen3::Eigen pybind11::pybind11)
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_link_libraries(fsi_piston PRIVATE Eigen3::Eigen)
+else()
+    target_link_libraries(fsi_piston PRIVATE Eigen3::Eigen pybind11::pybind11)
+endif ()

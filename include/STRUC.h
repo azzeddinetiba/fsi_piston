@@ -8,13 +8,17 @@
 #include <Eigen/StdVector>
 #include <iterator>
 #include "ppties.h"
+#if defined(_LINUX) | (_WIN32)
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
 #include <pybind11/eigen.h>
+#endif
 
 using namespace Eigen;
+#if defined(_LINUX) | (_WIN32)
 namespace py = pybind11;
 using namespace py::literals;
+#endif
 class STRUC
 {
 
@@ -23,7 +27,9 @@ class STRUC
 
 public:
     float freq0, omega0, T0, dt_export;
+    #if defined(_LINUX) | (_WIN32)
     py::object drom;
+    #endif
     STRUC(properties ppt);
     void set_ppts(properties ppt);
     void set_BC(float presL2t_ind);
