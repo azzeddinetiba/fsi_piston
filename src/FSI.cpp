@@ -133,13 +133,13 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 
 		// Compute the next time step value respecting CFL
 		if (d_t < 1e-9)
+		{
 			Delta_t = fluid.timestep(vcor_np1, vsol, wx, vcelerity, CFL);
+		}
 		else
+		{
 			Delta_t = d_t;
-		Delta_t_storage.push_back(Delta_t);
-		Total_time += Delta_t;
-
-		t.push_back(Total_time);
+		}
 
 		// Solve the structural problem
 
@@ -157,5 +157,11 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 		fluid.store_data(histo_pressure, Imp_fl, histo_velocity,
 						 histo_deformation, histo_pres_field, histo_rho, histo_rho_v,
 						 histo_rho_e, histo_mesh, fluid.fl_mesh_np1, Delta_t, u_dot_t, istep);
+
+		// Storing the time data
+		Delta_t_storage.push_back(Delta_t);
+		Total_time += Delta_t;
+
+		t.push_back(Total_time);
 	}
 }

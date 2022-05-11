@@ -34,8 +34,11 @@ struct properties
 	float umax;
 	float u0;
 	float mu;
+	float dt;
 	string spring_model;
 	int nln_order;
+	bool rom_in_struc;
+	bool cont_rom;
 };
 
 inline properties load_ppts();
