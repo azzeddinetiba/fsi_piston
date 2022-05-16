@@ -8,6 +8,7 @@
 #include <Eigen/StdVector>
 #include <iterator>
 #include "ppties.h"
+#include "Mesh.h"
 #if defined(_LINUX) | (_WIN32)
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
@@ -24,6 +25,8 @@ class STRUC
 
     float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u;
     properties struc_ppts;
+    VectorXf u_n;
+    Mesh msh;
 
 public:
     float freq0, omega0, T0, dt_export;
@@ -45,6 +48,9 @@ public:
     float get_u_double_dot_t();
     float get_Ppiston();
     void initialize(float presPist);
+    MatrixXf rigid_e(VectorXf x);
+    MatrixXf mass_e(VectorXf x);
+    void assemble();
 
     friend class FSI;
 };

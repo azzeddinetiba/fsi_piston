@@ -310,3 +310,55 @@ void STRUC::initialize(float presPist)
 	}
 	#endif
 }
+
+MatrixXf STRUC::mass_e(VectorXf x)
+{
+	float le;
+	MatrixXf mass, interm(2, 2);
+
+	le = x(1, 0) - x(0, 0);
+
+	interm(0, 0) = 2;
+	interm(0, 1) = 1;
+	interm(1, 0) = 1;
+	interm(1, 1) = 2;
+	mass = le / 6 * interm;
+
+	return mass;
+}
+
+MatrixXf STRUC::rigid_e(VectorXf x)
+{
+	float le;
+	MatrixXf rigid, interm(2, 2);
+
+	le = x(1, 0) - x(0, 0);
+
+	interm(0, 0) = 1;
+	interm(0, 1) = -1;
+	interm(1, 0) = -1;
+	interm(1, 1) = 1;
+	rigid = 1 / le * interm;
+
+	return rigid;
+}
+
+void STRUC::assemble()
+{
+	MatrixXf rigid = MatrixXf::Zero(msh.nx, msh.nx), mass = MatrixXf::Zero(msh.nx, msh.nx);
+	VectorXi elem_id;
+	MatrixXi conec;
+	VectorXf coor, coor_e;
+
+	conec = msh.get_conec();
+	coor = msh.get_coor();
+
+	for (int ie = 0; ie < msh.nel; ie++)
+	{
+		elem_id = conec(ie, seq(0, 1));
+		coor_e = coor(elem_id.array(), 0);
+
+		rigid(elem_id, elem_id) = rigid(elem_id, elem_id) + rigid_e(coor_e);
+		mass(elem_id, elem_id) = mass(elem_id, elem_id) + mass_e(coor_e);
+	}
+}
