@@ -26,7 +26,7 @@ class STRUC
     float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u;
     properties struc_ppts;
     VectorXf u_n;
-    MatrixXf rigid, mass;
+    MatrixXf rigid, mass, rhs;
     Mesh msh;
 
 public:
@@ -52,7 +52,7 @@ public:
     void initialize(float presPist);
     MatrixXf rigid_e(VectorXf x);
     MatrixXf mass_e(VectorXf x);
-    MatrixXf rhs_term(float p);
+    void rhs_term(float p);
     void assemble();
 
     friend class FSI;

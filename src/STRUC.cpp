@@ -69,8 +69,22 @@ void STRUC::set_BC(float presL2t_ind)
 	Ppiston = presL2t_ind;
 	if (struc_ppts.spring_model == "linear_1D")
 	{
-		
+		rhs_term(Ppiston);
 	}
+}
+
+void STRUC::set_BC_essential(int id)
+{
+	VectorXf a;
+	a = MatrixXf::Zero(msh.nnt);
+	mass.row(id) = a;
+	rigid.row(id) = a;
+	a = MatrixXf::Zero(msh.nnt);
+	mass.col(id) = a;
+	rigid.col(id) = a;
+
+	mass(id, id) = 1.;
+	rigid(id, id) = 1.;
 }
 
 void STRUC::set_ppts(properties ppt)
@@ -359,14 +373,12 @@ MatrixXf STRUC::rigid_e(VectorXf x)
 	return rigid;
 }
 
-MatrixXf STRUC::rhs_term(float p)
+void STRUC::rhs_term(float p)
 {
 	float le;
 	MatrixXf rhs = MatrixXf::Zero(msh.nnt, 1);
 
 	rhs(msh.nnt - 1, 0) = p;
-
-	return rhs;
 }
 
 void STRUC::assemble()
@@ -389,4 +401,9 @@ void STRUC::assemble()
 		rigid(elem_id, elem_id) = rigid(elem_id, elem_id) + rigid_e(coor_e);
 		mass(elem_id, elem_id) = mass(elem_id, elem_id) + mass_e(coor_e);
 	}
+}
+
+void lin_1D_model_solve(float Delta_t)
+{
+	
 }
