@@ -34,7 +34,7 @@ float STRUC::get_Ppiston()
 	return Ppiston;
 }
 
-void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_deformation,
+void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation,
 					   vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec,
 					   vector<float> &Ep, vector<float> &Em)
 {
@@ -67,6 +67,10 @@ void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf> > &histo_def
 void STRUC::set_BC(float presL2t_ind)
 {
 	Ppiston = presL2t_ind;
+	if (struc_ppts.spring_model == "linear_1D")
+	{
+		
+	}
 }
 
 void STRUC::set_ppts(properties ppt)
@@ -146,9 +150,9 @@ void STRUC::nonlin_model_solve(float Delta_t)
 void STRUC::rom_model_solve(float Delta_t)
 {
 	VectorXf pred(3), x_input(5);
-	#if defined(_LINUX) | (_WIN32)
+#if defined(_LINUX) | (_WIN32)
 	py::object pred_ob;
-	#endif
+#endif
 
 	x_input(0, 0) = u_t;
 	x_input(1, 0) = pow(u_t, 2);
@@ -156,22 +160,23 @@ void STRUC::rom_model_solve(float Delta_t)
 	x_input(3, 0) = 1.;
 	x_input(4, 0) = Ppiston;
 
-	#if defined(_LINUX) | (_WIN32)
+#if defined(_LINUX) | (_WIN32)
 	if (struc_ppts.cont_rom == false)
 	{
-		auto locals = py::dict("t"_a = 0, "x_input"_a=x_input, "drom"_a=drom);
+		auto locals = py::dict("t"_a = 0, "x_input"_a = x_input, "drom"_a = drom);
 		py::exec(R"(
 			from rom_am import EDMD, ROM
 			drom = locals()["drom"]
 			pred = drom.predict(t = locals()["t"], x_input = locals()["x_input"])
-		)", py::globals(), locals);
+		)",
+				 py::globals(), locals);
 		py::module_ np = py::module_::import("numpy");
 		pred_ob = np.attr("real")(locals["pred"]);
 	}
 	else
 	{
 		//py::dict globals = py::globals();
-		auto globals = py::dict("t"_a = 0, "x_input"_a=x_input, "erom"_a=drom, "dt"_a=Delta_t, "u_dot_t"_a=u_dot_t);
+		auto globals = py::dict("t"_a = 0, "x_input"_a = x_input, "erom"_a = drom, "dt"_a = Delta_t, "u_dot_t"_a = u_dot_t);
 		py::exec(R"(
 			from rom_am import EDMD
 			import numpy as np
@@ -192,13 +197,13 @@ void STRUC::rom_model_solve(float Delta_t)
 
 			sol = solve_ivp(f, [0, dt], np.array([prev_u_t, prev_u_dot_t]), t_eval=np.array([0, dt]), vectorized = True)
 			pred = np.array([[sol.y[0, -1]], [sol.y[1, -1]], [cont_sys(sol.y)[-1, -1]]])
-		)", globals, globals);
+		)",
+				 globals, globals);
 		pred_ob = globals["pred"];
 	}
 
-
 	pred = pred_ob.cast<VectorXf>();
-	#endif
+#endif
 	u_t = pred(0, 0);
 	u_dot_t = pred(1, 0);
 	u_double_dot_t = pred(2, 0);
@@ -207,25 +212,35 @@ void STRUC::rom_model_solve(float Delta_t)
 void STRUC::solve(float Delta_t)
 {
 	float inter;
-	if(struc_ppts.rom_in_struc)
+	if (struc_ppts.rom_in_struc)
 	{
 		rom_model_solve(Delta_t);
 	}
 	else
 	{
-		if (struc_ppts.spring_model == "linear")
+		if (struc_ppts.spring_model == "linear_1D")
 		{
-			lin_model_solve(Delta_t);
+			lin_1D_model_solve(Delta_t);
+		}
+		else if (struc_ppts.spring_model == "nonlinear_1D")
+		{
 		}
 		else
 		{
-			nonlin_model_solve(Delta_t);
+			if (struc_ppts.spring_model == "linear")
+			{
+				lin_model_solve(Delta_t);
+			}
+			else if (struc_ppts.spring_model == "nonlinear")
+			{
+				nonlin_model_solve(Delta_t);
+			}
+			u_t += delta_u;
+			inter = 4 / pow(Delta_t, 2) * delta_u - 4 / Delta_t * u_dot_t -
+					u_double_dot_t;
+			u_dot_t = u_dot_t + Delta_t / 2 * (u_double_dot_t + inter);
+			u_double_dot_t = inter;
 		}
-		u_t += delta_u;
-		inter = 4 / pow(Delta_t, 2) * delta_u - 4 / Delta_t * u_dot_t -
-				u_double_dot_t;
-		u_dot_t = u_dot_t + Delta_t / 2 * (u_double_dot_t + inter);
-		u_double_dot_t = inter;
 	}
 }
 
@@ -258,7 +273,7 @@ void STRUC::initialize(float presPist)
 							 struc_ppts.vprel[1];
 		}
 	}
-	#if defined(_LINUX) | (_WIN32)
+#if defined(_LINUX) | (_WIN32)
 	if (struc_ppts.rom_in_struc)
 	{
 		py::dict globals = py::globals();
@@ -281,11 +296,11 @@ void STRUC::initialize(float presPist)
 				edmd = rom_am.EDMD()
 				drom = rom_am.ROM(edmd)
 				drom.decompose(X,  Y = Y, dt = dt, observables=observables)
-			)", globals, globals);
+			)",
+					 globals, globals);
 
 			py::object dt_ob = globals["dt"];
 			dt_export = dt_ob.cast<float>();
-
 		}
 		else
 		{
@@ -302,13 +317,14 @@ void STRUC::initialize(float presPist)
 				edmd = rom_am.EDMD()
 				drom = rom_am.ROM(edmd)
 				drom.decompose(X,  Y = Y, dt = 0.1, observables=observables)
-			)", globals, globals); // dt is not important here
+			)",
+					 globals, globals); // dt is not important here
 			dt_export = 0.;
 		}
 
 		drom = globals["drom"];
 	}
-	#endif
+#endif
 }
 
 MatrixXf STRUC::mass_e(VectorXf x)
@@ -343,17 +359,29 @@ MatrixXf STRUC::rigid_e(VectorXf x)
 	return rigid;
 }
 
+MatrixXf STRUC::rhs_term(float p)
+{
+	float le;
+	MatrixXf rhs = MatrixXf::Zero(msh.nnt, 1);
+
+	rhs(msh.nnt - 1, 0) = p;
+
+	return rhs;
+}
+
 void STRUC::assemble()
 {
-	MatrixXf rigid = MatrixXf::Zero(msh.nx, msh.nx), mass = MatrixXf::Zero(msh.nx, msh.nx);
 	VectorXi elem_id;
 	MatrixXi conec;
 	VectorXf coor, coor_e;
 
 	conec = msh.get_conec();
-	coor = msh.get_coor();
+	coor = msh.get_vcor();
 
-	for (int ie = 0; ie < msh.nel; ie++)
+	rigid = MatrixXf::Zero(msh.nnt, msh.nnt);
+	mass = MatrixXf::Zero(msh.nnt, msh.nnt);
+
+	for (int ie = 0; ie < msh.nelt; ie++)
 	{
 		elem_id = conec(ie, seq(0, 1));
 		coor_e = coor(elem_id.array(), 0);
