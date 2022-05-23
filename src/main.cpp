@@ -67,12 +67,15 @@ properties load_ppts()
 
 	ppts.vprel.push_back(1e7);	// Spring rigidity
 	ppts.vprel.push_back(mass); // Spring mass
-	ppts.spring_model = "nonlinear";
+	ppts.sdim = 1;
+	ppts.spring_model = "linear";
 	ppts.nln_order = 3;
 	ppts.rom_in_struc = false;
 	ppts.cont_rom = true;
 
 	ppts.Lsp0 = 1.2; // Unstretched spring length
+	ppts.young = ppts.vprel[0] * ppts.Lsp0/ppts.A; // Young modulus equivalent to the spring rigidity
+	ppts.rho_s = ppts.vprel[1] / (ppts.A * ppts.Lsp0); // Beam density equivalent to the spring mass
 	if (ppts.spring_model == "nonlinear")
 	{
 		ppts.umax = 0.2; // Maximum spring displacements for linear spring model ('C' Model)
@@ -98,6 +101,10 @@ properties load_ppts()
 
 	ppts.dt = 7.09e-6;
 
+	// Newmark params
+	ppts.newm_gamma = .5;
+	ppts.newm_beta = .25 * std::pow(ppts.newm_gamma + .5, 2);
+
 	return ppts;
 }
 
@@ -115,10 +122,12 @@ int main()
 	}
 	#endif
 
-	// Create the mesh
+	// Create the meshes
 	int nnt = nmesh;
 	Mesh mesh_n;
 	mesh_n.load(nnt, ppts.L_t);
+	Mesh mesh_ns;
+	mesh_ns.load(20, ppts.Lsp0);
 
 	// Create the fluid FEM model
 	Fluid fluid_model(ppts);
@@ -126,7 +135,7 @@ int main()
 
 	// Create the structure FEM model
 	STRUC structure_model(ppts);
-	structure_model.initialize(fluid_model.get_vpres()(nnt - 1));
+	structure_model.initialize(fluid_model.get_vpres()(nnt - 1), mesh_ns);
 	if (ppts.rom_in_struc)
 	{
 		dt = structure_model.dt_export;

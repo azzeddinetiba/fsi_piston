@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <Eigen/StdVector>
+#include <Eigen/Sparse>
 #include <iterator>
 #include "ppties.h"
 #include "Mesh.h"
@@ -23,10 +24,11 @@ using namespace py::literals;
 class STRUC
 {
 
-    float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u;
+    float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u, newm_beta, newm_gamma;
     properties struc_ppts;
-    VectorXf u_n;
-    MatrixXf rigid, mass, rhs;
+    VectorXf rhs, u_n, u_dt_n, u_ddt_n, delta_u_n;
+    //MatrixXf rigid, mass;
+    SparseMatrix<float> rigid, mass;
     Mesh msh;
 
 public:
@@ -39,17 +41,19 @@ public:
     void set_BC(float presL2t_ind);
     void solve(float Delta_T);
     void lin_model_solve(float Delta_t);
-    void lin_1D_model_solve(float Delta_t);
+    void lin_1D_model_solve(float Delta_t, float beta);
     void nonlin_model_solve(float Delta_t);
     void rom_model_solve(float Delta_t);
     void store_data(vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation,
                     vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec,
-                    vector<float> &Ep, vector<float> &Em);
+                    vector<float> &Ep, vector<float> &Em, vector<VectorXf, aligned_allocator<VectorXf>> &histo_udt,
+                    vector<VectorXf, aligned_allocator<VectorXf>> &histo_uddt);
     float get_u();
     float get_u_dot_t();
     float get_u_double_dot_t();
     float get_Ppiston();
-    void initialize(float presPist);
+    void initialize(float presPist, Mesh mesh);
+    void set_BC_essential(int id);
     MatrixXf rigid_e(VectorXf x);
     MatrixXf mass_e(VectorXf x);
     void rhs_term(float p);

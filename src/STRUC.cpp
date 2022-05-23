@@ -4,12 +4,14 @@
 #include "algs.h"
 
 using namespace Eigen;
-using namespace std;
 
 STRUC::STRUC(properties ppt)
 {
 	set_ppts(ppt);
-	omega0 = sqrt(struc_ppts.vprel[0] / struc_ppts.vprel[1]);
+	if (struc_ppts.sdim == 0)
+		omega0 = std::sqrt(struc_ppts.vprel[0] / struc_ppts.vprel[1]);
+	else
+		omega0 = M_PI/2 * std::sqrt((struc_ppts.young)/(struc_ppts.rho_s * std::pow(struc_ppts.Lsp0, 3)));
 	freq0 = omega0 / (2 * M_PI);
 	T0 = 1. / freq0;
 }
@@ -36,55 +38,56 @@ float STRUC::get_Ppiston()
 
 void STRUC::store_data(vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation,
 					   vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec,
-					   vector<float> &Ep, vector<float> &Em)
+					   vector<float> &Ep, vector<float> &Em, vector<VectorXf, aligned_allocator<VectorXf>> &histo_dt,
+					   vector<VectorXf, aligned_allocator<VectorXf>> &histo_ddt)
 {
-	Ec.push_back(.5 * struc_ppts.vprel[1] * pow(u_dot_t, 2));
-	Ep.push_back(.5 * struc_ppts.vprel[0] * pow((struc_ppts.Lspe - u_t - struc_ppts.Lsp0), 2));
+	Ec.push_back(.5 * struc_ppts.vprel[1] * std::pow(u_dot_t, 2));
+	Ep.push_back(.5 * struc_ppts.vprel[0] * std::pow((struc_ppts.Lspe - u_t - struc_ppts.Lsp0), 2));
 	if (struc_ppts.spring_model == "nonlinear")
 	{
 		if (struc_ppts.nln_order == 2)
 		{
 			if ((struc_ppts.u0 - u_t) > 0)
-				Ep[Ep.size() - 1] += struc_ppts.mu * (1 / 3) * pow((struc_ppts.u0 - u_t), 3);
+				Ep[Ep.size() - 1] += struc_ppts.mu * (1 / 3) * std::pow((struc_ppts.u0 - u_t), 3);
 			else
-				Ep[Ep.size() - 1] -= struc_ppts.mu * (1 / 3) * pow((struc_ppts.u0 - u_t), 3);
+				Ep[Ep.size() - 1] -= struc_ppts.mu * (1 / 3) * std::pow((struc_ppts.u0 - u_t), 3);
 		}
 		else
 		{
-			Ep[Ep.size() - 1] += struc_ppts.mu * pow(struc_ppts.u0 - u_t, 4) / 4;
+			Ep[Ep.size() - 1] += struc_ppts.mu * std::pow(struc_ppts.u0 - u_t, 4) / 4;
 		}
 	}
 
 	Em.push_back(Ec[Ec.size() - 1] + Ep[Ep.size() - 1]);
 	histo_accel.push_back(u_double_dot_t);
 
-	VectorXf hist_def(2);
-	hist_def(0) = u_t;
-	hist_def(1) = 0;
-	histo_deformation.push_back(hist_def);
+	histo_deformation.push_back(u_n);
+	histo_dt.push_back(u_dt_n);
+	histo_ddt.push_back(u_ddt_n);
 }
 
 void STRUC::set_BC(float presL2t_ind)
 {
 	Ppiston = presL2t_ind;
-	if (struc_ppts.spring_model == "linear_1D")
+	if (struc_ppts.sdim == 1)
 	{
-		rhs_term(Ppiston);
+		rhs_term(-(Ppiston-1e5));
 	}
 }
 
 void STRUC::set_BC_essential(int id)
 {
-	VectorXf a;
-	a = MatrixXf::Zero(msh.nnt);
-	mass.row(id) = a;
-	rigid.row(id) = a;
-	a = MatrixXf::Zero(msh.nnt);
-	mass.col(id) = a;
-	rigid.col(id) = a;
-
-	mass(id, id) = 1.;
-	rigid(id, id) = 1.;
+	for(int i =0; i < msh.nnt; i++)
+	{
+			mass.coeffRef(id, i) = 0.;
+			mass.coeffRef(i, id) = 0.;
+			rigid.coeffRef(id, i) = 0.;
+			rigid.coeffRef(i, id) = 0.;
+	}
+	mass = mass.pruned();
+	rigid = rigid.pruned();
+	mass.coeffRef(id,id) = 1.;
+	rigid.coeffRef(id,id) = 1.;
 }
 
 void STRUC::set_ppts(properties ppt)
@@ -101,10 +104,10 @@ void STRUC::lin_model_solve(float Delta_t)
 	vmg = struc_ppts.vprel[1];
 	vfg = (Ppiston - pres_init0) * A;
 
-	vkt = 4 * vmg + pow(Delta_t, 2) * vkg;
+	vkt = 4 * vmg + std::pow(Delta_t, 2) * vkg;
 
-	vres = pow(Delta_t, 2) * vfg + 4 * Delta_t * vmg * u_dot_t +
-		   pow(Delta_t, 2) * vmg * u_double_dot_t - pow(Delta_t, 2) * vkg * u_t;
+	vres = std::pow(Delta_t, 2) * vfg + 4 * Delta_t * vmg * u_dot_t +
+		   std::pow(Delta_t, 2) * vmg * u_double_dot_t - std::pow(Delta_t, 2) * vkg * u_t;
 
 	delta_u = vres / vkt;
 }
@@ -131,28 +134,28 @@ void STRUC::nonlin_model_solve(float Delta_t)
 
 		if (struc_ppts.nln_order == 2)
 		{
-			res = pow(Delta_t, 2) * (A * Ppiston + kp * u0 + mass * u_double_dot_t -
+			res = std::pow(Delta_t, 2) * (A * Ppiston + kp * u0 + mass * u_double_dot_t -
 									 kp * u_t - kp * delta_u - mu * (u_t - u0 + delta_u) * std::abs(u_t + delta_u - u0)) -
 				  4 * mass * delta_u + 4 * mass * u_dot_t * Delta_t;
 
 			if ((u_t - struc_ppts.u0 + delta_u) > 0.)
 			{
-				jacobian = -4 * mass + pow(Delta_t, 2) * (-kp + 2 * mu * (u_t - u0) + 2 * mu * delta_u);
+				jacobian = -4 * mass + std::pow(Delta_t, 2) * (-kp + 2 * mu * (u_t - u0) + 2 * mu * delta_u);
 			}
 			else
 			{
-				jacobian = -4 * mass + pow(Delta_t, 2) * (-kp - 2 * mu * (u_t - u0) - 2 * mu * delta_u);
+				jacobian = -4 * mass + std::pow(Delta_t, 2) * (-kp - 2 * mu * (u_t - u0) - 2 * mu * delta_u);
 			}
 		}
 		else
 		{
-			res = mu * pow(delta_u, 3) + (3 * mu * u_t - 3 * mu * u0) * pow(delta_u, 2) +
-				  (4 * mass / (pow(Delta_t, 2)) + kp + 3 * mu * pow(u_t, 2) - 6 * mu * u0 * u_t + 3 * mu * pow(u_t, 2)) * delta_u -
-				  mass * u_double_dot_t - 4 * mass / (Delta_t)*u_dot_t + (kp + 3 * mu * pow(u0, 2)) * u_t + mu * pow(u_t, 3) -
-				  3 * mu * u0 * pow(u_t, 2) - mu * pow(u0, 3) - kp * u0 - A * Ppiston;
+			res = mu * std::pow(delta_u, 3) + (3 * mu * u_t - 3 * mu * u0) * std::pow(delta_u, 2) +
+				  (4 * mass / (std::pow(Delta_t, 2)) + kp + 3 * mu * std::pow(u_t, 2) - 6 * mu * u0 * u_t + 3 * mu * std::pow(u_t, 2)) * delta_u -
+				  mass * u_double_dot_t - 4 * mass / (Delta_t)*u_dot_t + (kp + 3 * mu * std::pow(u0, 2)) * u_t + mu * std::pow(u_t, 3) -
+				  3 * mu * u0 * std::pow(u_t, 2) - mu * std::pow(u0, 3) - kp * u0 - A * Ppiston;
 
-			jacobian = 3 * mu * pow(delta_u, 2) + 2 * (3 * mu * u_t - 3 * mu * u0) * delta_u + 4 * mass / (pow(Delta_t, 2)) +
-					   kp + 3 * mu * pow(u_t, 2) - 6 * mu * u0 * u_t + 3 * mu * pow(u0, 2);
+			jacobian = 3 * mu * std::pow(delta_u, 2) + 2 * (3 * mu * u_t - 3 * mu * u0) * delta_u + 4 * mass / (std::pow(Delta_t, 2)) +
+					   kp + 3 * mu * std::pow(u_t, 2) - 6 * mu * u0 * u_t + 3 * mu * std::pow(u0, 2);
 		}
 
 		nonlin_sys.set_residual(res);
@@ -169,8 +172,8 @@ void STRUC::rom_model_solve(float Delta_t)
 #endif
 
 	x_input(0, 0) = u_t;
-	x_input(1, 0) = pow(u_t, 2);
-	x_input(2, 0) = pow(u_t, 3);
+	x_input(1, 0) = std::pow(u_t, 2);
+	x_input(2, 0) = std::pow(u_t, 3);
 	x_input(3, 0) = 1.;
 	x_input(4, 0) = Ppiston;
 
@@ -189,7 +192,7 @@ void STRUC::rom_model_solve(float Delta_t)
 	}
 	else
 	{
-		//py::dict globals = py::globals();
+		// py::dict globals = py::globals();
 		auto globals = py::dict("t"_a = 0, "x_input"_a = x_input, "erom"_a = drom, "dt"_a = Delta_t, "u_dot_t"_a = u_dot_t);
 		py::exec(R"(
 			from rom_am import EDMD
@@ -232,13 +235,22 @@ void STRUC::solve(float Delta_t)
 	}
 	else
 	{
-		if (struc_ppts.spring_model == "linear_1D")
+		if (struc_ppts.sdim == 1)
 		{
-			lin_1D_model_solve(Delta_t);
+			if (struc_ppts.spring_model == "linear")
+			{
+				lin_1D_model_solve(Delta_t, newm_beta);
+				VectorXf prev_u_ddt_n = u_ddt_n;
+				u_ddt_n = (1 / (newm_beta * std::pow(Delta_t, 2))) * delta_u_n - (1 / (Delta_t * newm_beta)) * u_dt_n + ((newm_beta - .5) / newm_beta) * u_ddt_n;
+				u_dt_n = u_dt_n + (1 - newm_gamma) * Delta_t * prev_u_ddt_n + newm_gamma * Delta_t * u_ddt_n;
+				u_n += delta_u_n;
+			}
+			else if (struc_ppts.spring_model == "nonlinear")
+			{
+			}
+			u_dot_t = u_dt_n(0);
 		}
-		else if (struc_ppts.spring_model == "nonlinear_1D")
-		{
-		}
+
 		else
 		{
 			if (struc_ppts.spring_model == "linear")
@@ -250,7 +262,7 @@ void STRUC::solve(float Delta_t)
 				nonlin_model_solve(Delta_t);
 			}
 			u_t += delta_u;
-			inter = 4 / pow(Delta_t, 2) * delta_u - 4 / Delta_t * u_dot_t -
+			inter = 4 / std::pow(Delta_t, 2) * delta_u - 4 / Delta_t * u_dot_t -
 					u_double_dot_t;
 			u_dot_t = u_dot_t + Delta_t / 2 * (u_double_dot_t + inter);
 			u_double_dot_t = inter;
@@ -258,35 +270,80 @@ void STRUC::solve(float Delta_t)
 	}
 }
 
-void STRUC::initialize(float presPist)
+void STRUC::initialize(float presPist, Mesh mesh)
 {
-	// Initialisation of the displacement
-	u_t = struc_ppts.U_0;
-	float vfg0;
-	vfg0 = (presPist - 0 * struc_ppts.pres_init0) * struc_ppts.A;
-
-	// Initialisation of the velocity
-	u_dot_t = 0;
-
-	// Initialisation of the acceleration
-	if (struc_ppts.spring_model == "linear")
+	// Initialisation of mesh, mass and stiffeness matrices (1D case)
+	if(struc_ppts.sdim == 1)
 	{
-		u_double_dot_t = (vfg0 + struc_ppts.vprel[0] * (struc_ppts.Lspe - u_t - struc_ppts.Lsp0)) / struc_ppts.vprel[1];
+		msh = mesh;
+		//rigid = MatrixXf::Zero(msh.nnt, msh.nnt);
+		//mass = MatrixXf::Zero(msh.nnt, msh.nnt);
+		rigid.resize(msh.nnt, msh.nnt);
+		mass.resize(msh.nnt, msh.nnt);
+		assemble();
+
+		set_BC_essential(msh.nnt-1); // 0 Dirichlet Cond at the right boundary
+		rhs = VectorXf::Zero(msh.nnt);
+		rhs_term(-presPist);
+
+		// Initialization of newmark params
+		newm_beta = struc_ppts.newm_beta;
+		newm_gamma = struc_ppts.newm_gamma;
+	}
+
+	// Initialisation of the displacement
+	if (struc_ppts.sdim == 0)
+	{
+		u_t = struc_ppts.U_0;
 	}
 	else
 	{
-		if (struc_ppts.nln_order == 2)
+		u_n = (struc_ppts.U_0 * VectorXf::LinSpaced(Sequential, msh.nnt, 1, 0));
+	}
+
+	// Initialisation of the velocity
+	if (struc_ppts.sdim == 0)
+	{
+		u_dot_t = 0;
+	}
+	else
+	{
+		u_dt_n = VectorXf::Zero(msh.nnt);
+	}
+
+	// Initialisation of the acceleration
+	if(struc_ppts.sdim == 0)
+	{
+		if (struc_ppts.spring_model == "linear")
 		{
-			u_double_dot_t = (struc_ppts.A * presPist + struc_ppts.vprel[0] * (struc_ppts.u0 - u_t) -
-							  struc_ppts.mu * (u_t - struc_ppts.u0) * std::abs(u_t - struc_ppts.u0)) /
-							 struc_ppts.vprel[1];
+			float vfg0;
+			vfg0 = (presPist - 0 * struc_ppts.pres_init0) * struc_ppts.A;
+			u_double_dot_t = (vfg0 + struc_ppts.vprel[0] * (struc_ppts.Lspe - u_t - struc_ppts.Lsp0)) / struc_ppts.vprel[1];
 		}
 		else
 		{
-			u_double_dot_t = (struc_ppts.A * presPist + struc_ppts.vprel[0] * (struc_ppts.u0 - u_t) + struc_ppts.mu * pow(struc_ppts.u0 - u_t, 3)) /
-							 struc_ppts.vprel[1];
+			if (struc_ppts.nln_order == 2)
+			{
+				u_double_dot_t = (struc_ppts.A * presPist + struc_ppts.vprel[0] * (struc_ppts.u0 - u_t) -
+								struc_ppts.mu * (u_t - struc_ppts.u0) * std::abs(u_t - struc_ppts.u0)) /
+								struc_ppts.vprel[1];
+			}
+			else
+			{
+				u_double_dot_t = (struc_ppts.A * presPist + struc_ppts.vprel[0] * (struc_ppts.u0 - u_t) + struc_ppts.mu * std::pow(struc_ppts.u0 - u_t, 3)) /
+								struc_ppts.vprel[1];
+			}
 		}
 	}
+	else
+	{
+		float E = struc_ppts.young, m = struc_ppts.rho_s * struc_ppts.A * struc_ppts.Lsp0;
+		//ColPivHouseholderQR<MatrixXf> dec(m * mass);
+		//u_ddt_n = dec.solve(rhs + E * rigid * u_n);
+		Eigen::SimplicialCholesky<SparseMatrix<float>> chol(m * mass);
+		u_ddt_n = chol.solve(rhs + E * rigid * u_n);
+	}
+
 #if defined(_LINUX) | (_WIN32)
 	if (struc_ppts.rom_in_struc)
 	{
@@ -344,7 +401,7 @@ void STRUC::initialize(float presPist)
 MatrixXf STRUC::mass_e(VectorXf x)
 {
 	float le;
-	MatrixXf mass, interm(2, 2);
+	MatrixXf masse, interm(2, 2);
 
 	le = x(1, 0) - x(0, 0);
 
@@ -352,15 +409,15 @@ MatrixXf STRUC::mass_e(VectorXf x)
 	interm(0, 1) = 1;
 	interm(1, 0) = 1;
 	interm(1, 1) = 2;
-	mass = le / 6 * interm;
+	masse = le / 6 * interm;
 
-	return mass;
+	return -masse;
 }
 
 MatrixXf STRUC::rigid_e(VectorXf x)
 {
 	float le;
-	MatrixXf rigid, interm(2, 2);
+	MatrixXf rigide, interm(2, 2);
 
 	le = x(1, 0) - x(0, 0);
 
@@ -368,17 +425,16 @@ MatrixXf STRUC::rigid_e(VectorXf x)
 	interm(0, 1) = -1;
 	interm(1, 0) = -1;
 	interm(1, 1) = 1;
-	rigid = 1 / le * interm;
+	rigide = 1 / le * interm;
 
-	return rigid;
+	return rigide;
 }
 
 void STRUC::rhs_term(float p)
 {
 	float le;
-	MatrixXf rhs = MatrixXf::Zero(msh.nnt, 1);
 
-	rhs(msh.nnt - 1, 0) = p;
+	rhs(0, 0) = p;
 }
 
 void STRUC::assemble()
@@ -386,24 +442,43 @@ void STRUC::assemble()
 	VectorXi elem_id;
 	MatrixXi conec;
 	VectorXf coor, coor_e;
+	MatrixXf rigide, masse;
 
 	conec = msh.get_conec();
 	coor = msh.get_vcor();
-
-	rigid = MatrixXf::Zero(msh.nnt, msh.nnt);
-	mass = MatrixXf::Zero(msh.nnt, msh.nnt);
 
 	for (int ie = 0; ie < msh.nelt; ie++)
 	{
 		elem_id = conec(ie, seq(0, 1));
 		coor_e = coor(elem_id.array(), 0);
+		rigide = rigid_e(coor_e);
+		masse = mass_e(coor_e);
 
-		rigid(elem_id, elem_id) = rigid(elem_id, elem_id) + rigid_e(coor_e);
-		mass(elem_id, elem_id) = mass(elem_id, elem_id) + mass_e(coor_e);
+		for (int i = 0; i<2; i++)
+			{
+				for(int j = 0; j<2; j++)
+				{
+					rigid.coeffRef(elem_id(i), elem_id(j)) += rigide(i, j);
+					mass.coeffRef(elem_id(i), elem_id(j)) += masse(i, j);
+				}
+			}
+		//rigid(elem_id, elem_id) = rigid(elem_id, elem_id) + rigid_e(coor_e);
+		//mass(elem_id, elem_id) = mass(elem_id, elem_id) + mass_e(coor_e);
 	}
 }
 
-void lin_1D_model_solve(float Delta_t)
+void STRUC::lin_1D_model_solve(float Delta_t, float beta)
 {
-	
+	SparseMatrix<float> G;
+	VectorXf H;
+	float E, m;
+
+	m = struc_ppts.rho_s * struc_ppts.A * struc_ppts.Lsp0;
+	E = struc_ppts.young;
+
+	G = (m / (beta * std::pow(Delta_t, 2))) * mass - E * rigid;
+	H = (E * rigid * u_n + (m / (Delta_t * beta)) * mass * u_dt_n + (m * (.5 - beta) / beta) * mass * u_ddt_n + rhs);
+
+	Eigen::SimplicialCholesky<SparseMatrix<float>> chol(G);
+	delta_u_n = chol.solve(H);
 }

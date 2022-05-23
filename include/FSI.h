@@ -22,6 +22,8 @@ public:
 	vector<float> Imp_fl;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_velocity;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_deformation;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_dt;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_ddt;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_pres_field;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_rho;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_rho_v;

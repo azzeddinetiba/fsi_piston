@@ -35,8 +35,13 @@ struct properties
 	float u0;
 	float mu;
 	float dt;
+	float young;
+	float rho_s;
+	float newm_beta;
+	float newm_gamma;
 	string spring_model;
 	int nln_order;
+	int sdim;
 	bool rom_in_struc;
 	bool cont_rom;
 };

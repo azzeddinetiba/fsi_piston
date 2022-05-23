@@ -15,31 +15,34 @@ FSI::FSI(float T0)
 void FSI::export_results()
 {
 
-	ofstream file("../Results/results_pres.txt");
+	ofstream file("../../Results/results_pres.txt");
 	if (file.is_open())
 	{
 		std::ostream_iterator<float> output_iterator(file, "\n");
 		std::copy(histo_pressure.begin(), histo_pressure.end(), output_iterator);
 	}
 
-	ofstream file6("../Results/results_Delta_T.txt");
+	ofstream file6("../../Results/results_Delta_T.txt");
 	if (file6.is_open())
 	{
 		std::ostream_iterator<float> output_iterator(file6, "\n");
 		std::copy(Delta_t_storage.begin(), Delta_t_storage.end(), output_iterator);
 	}
 
-	ofstream file1("../Results/results_pres_field.txt");
-	ofstream file2("../Results/results_rho.txt");
-	ofstream file3("../Results/results_rho_v.txt");
-	ofstream file4("../Results/results_rho_e.txt");
-	ofstream file5("../Results/results_v.txt");
-	ofstream file7("../Results/results_mesh.txt");
-	ofstream file8("../Results/results_m_accel.txt");
-	ofstream file9("../Results/results_Ec.txt");
-	ofstream file10("../Results/results_Ep.txt");
-	ofstream file11("../Results/results_Em.txt");
-	ofstream file12("../Results/results_Imp_Fl.txt");
+	ofstream file1("../../Results/results_pres_field.txt");
+	ofstream file2("../../Results/results_rho.txt");
+	ofstream file3("../../Results/results_rho_v.txt");
+	ofstream file4("../../Results/results_rho_e.txt");
+	ofstream file5("../../Results/results_v.txt");
+	ofstream file7("../../Results/results_mesh.txt");
+	ofstream file8("../../Results/results_m_accel.txt");
+	ofstream file9("../../Results/results_Ec.txt");
+	ofstream file10("../../Results/results_Ep.txt");
+	ofstream file11("../../Results/results_Em.txt");
+	ofstream file12("../../Results/results_Imp_Fl.txt");
+	ofstream file13("../../Results/results_sol_ut.txt");
+	ofstream file14("../../Results/results_sol_udt.txt");
+	ofstream file15("../../Results/results_sol_uddt.txt");
 
 	for (int i = 0; i < istep + 1; i++)
 	{
@@ -92,6 +95,18 @@ void FSI::export_results()
 		if (file12.is_open())
 		{
 			file12 << Imp_fl[i] << '\n';
+		}
+		if (file13.is_open())
+		{
+			file13 << histo_deformation[i] << '\n';
+		}
+		if (file14.is_open())
+		{
+			file14 << histo_dt[i] << '\n';
+		}
+		if (file15.is_open())
+		{
+			file15 << histo_ddt[i] << '\n';
 		}
 	}
 }
@@ -150,12 +165,12 @@ void FSI::solve(STRUC &struc, Fluid &fluid, float d_t)
 		// Get the structure solution
 		struc.solve(Delta_t);
 		u_dot_t = struc.get_u_dot_t();
-		struc.store_data(histo_deformation, histo_accel, Force_ext, Ec, Ep, Em);
+		struc.store_data(histo_deformation, histo_accel, Force_ext, Ec, Ep, Em, histo_dt, histo_ddt);
 
 		// Solve the fluid problem
 		fluid.solve(Delta_t, u_dot_t);
 		fluid.store_data(histo_pressure, Imp_fl, histo_velocity,
-						 histo_deformation, histo_pres_field, histo_rho, histo_rho_v,
+						 histo_pres_field, histo_rho, histo_rho_v,
 						 histo_rho_e, histo_mesh, fluid.fl_mesh_np1, Delta_t, u_dot_t, istep);
 
 		// Storing the time data
