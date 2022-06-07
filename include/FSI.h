@@ -34,7 +34,7 @@ public:
 	vector<float> t, Delta_t_storage;
 	int istep;
 
-	FSI(float T0);
+	FSI();
 	void solve(STRUC &struc, Fluid &fluid, float d_t = 0);
 	void export_results();
 };

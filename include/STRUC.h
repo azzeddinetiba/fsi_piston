@@ -24,10 +24,12 @@ using namespace py::literals;
 class STRUC
 {
 
-    float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u, newm_beta, newm_gamma;
+    float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u, newm_beta, newm_gamma, ch_alpha_m, ch_alpha_f, 
+        ch_beta, ch_gamma;
     properties struc_ppts;
     VectorXf rhs, u_n, u_dt_n, u_ddt_n, delta_u_n;
-    //MatrixXf rigid, mass;
+    Eigen::SimplicialCholesky<SparseMatrix<float>> chol_G;
+    bool is_there_cholG;
     SparseMatrix<float> rigid, mass;
     Mesh msh;
 
@@ -41,7 +43,7 @@ public:
     void set_BC(float presL2t_ind);
     void solve(float Delta_T);
     void lin_model_solve(float Delta_t);
-    void lin_1D_model_solve(float Delta_t, float beta);
+    void lin_1D_model_solve(float Delta_t, float beta, float gamma);
     void nonlin_model_solve(float Delta_t);
     void rom_model_solve(float Delta_t);
     void store_data(vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation,

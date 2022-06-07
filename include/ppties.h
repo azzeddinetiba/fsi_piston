@@ -37,6 +37,7 @@ struct properties
 	float dt;
 	float young;
 	float rho_s;
+	bool newm;
 	float newm_beta;
 	float newm_gamma;
 	string spring_model;
@@ -44,6 +45,12 @@ struct properties
 	int sdim;
 	bool rom_in_struc;
 	bool cont_rom;
+	bool ch_alph;
+	float ch_rho;
+	float ch_alpha_m;
+	float ch_alpha_f;
+	float ch_beta;
+	float ch_gamma;
 };
 
 inline properties load_ppts();

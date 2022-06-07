@@ -102,8 +102,17 @@ properties load_ppts()
 	ppts.dt = 7.09e-6;
 
 	// Newmark params
+	ppts.newm = true;
 	ppts.newm_gamma = .5;
 	ppts.newm_beta = .25 * std::pow(ppts.newm_gamma + .5, 2);
+
+	// Generalized alpha scheme
+	ppts.ch_alph = false;
+	ppts.ch_rho = 0.;
+	ppts.ch_alpha_m = (2 * ppts.ch_rho - 1.)/(ppts.ch_rho + 1.);
+	ppts.ch_alpha_f = ppts.ch_rho/(ppts.ch_rho + 1);
+	ppts.ch_beta = .25 * std::pow(1. - ppts.ch_alpha_m + ppts.ch_alpha_f, 2);
+	ppts.ch_gamma = .5 - ppts.ch_alpha_m + ppts.ch_alpha_f;
 
 	return ppts;
 }
@@ -127,7 +136,7 @@ int main()
 	Mesh mesh_n;
 	mesh_n.load(nnt, ppts.L_t);
 	Mesh mesh_ns;
-	mesh_ns.load(20, ppts.Lsp0);
+	mesh_ns.load(100, ppts.Lsp0);
 
 	// Create the fluid FEM model
 	Fluid fluid_model(ppts);
@@ -141,7 +150,7 @@ int main()
 		dt = structure_model.dt_export;
 	}
 	// Create the fluid-strucure interaction coupling
-	FSI fsi_piston(structure_model.T0);
+	FSI fsi_piston;
 
 	// Solve the problem
 	fsi_piston.solve(structure_model, fluid_model, dt);

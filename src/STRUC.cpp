@@ -11,9 +11,10 @@ STRUC::STRUC(properties ppt)
 	if (struc_ppts.sdim == 0)
 		omega0 = std::sqrt(struc_ppts.vprel[0] / struc_ppts.vprel[1]);
 	else
-		omega0 = M_PI/2 * std::sqrt((struc_ppts.young)/(struc_ppts.rho_s * std::pow(struc_ppts.Lsp0, 3)));
+		omega0 = std::sqrt((struc_ppts.young)/(struc_ppts.rho_s * std::pow(struc_ppts.Lsp0, 3)));
 	freq0 = omega0 / (2 * M_PI);
 	T0 = 1. / freq0;
+	std::cout<<"HAA"<<T0;
 }
 
 float STRUC::get_u()
@@ -239,16 +240,14 @@ void STRUC::solve(float Delta_t)
 		{
 			if (struc_ppts.spring_model == "linear")
 			{
-				lin_1D_model_solve(Delta_t, newm_beta);
-				VectorXf prev_u_ddt_n = u_ddt_n;
-				u_ddt_n = (1 / (newm_beta * std::pow(Delta_t, 2))) * delta_u_n - (1 / (Delta_t * newm_beta)) * u_dt_n + ((newm_beta - .5) / newm_beta) * u_ddt_n;
-				u_dt_n = u_dt_n + (1 - newm_gamma) * Delta_t * prev_u_ddt_n + newm_gamma * Delta_t * u_ddt_n;
-				u_n += delta_u_n;
+				lin_1D_model_solve(Delta_t, newm_beta, newm_gamma);
 			}
 			else if (struc_ppts.spring_model == "nonlinear")
 			{
 			}
+			u_t = u_n(0);
 			u_dot_t = u_dt_n(0);
+			u_double_dot_t = u_ddt_n(0);
 		}
 
 		else
@@ -276,8 +275,6 @@ void STRUC::initialize(float presPist, Mesh mesh)
 	if(struc_ppts.sdim == 1)
 	{
 		msh = mesh;
-		//rigid = MatrixXf::Zero(msh.nnt, msh.nnt);
-		//mass = MatrixXf::Zero(msh.nnt, msh.nnt);
 		rigid.resize(msh.nnt, msh.nnt);
 		mass.resize(msh.nnt, msh.nnt);
 		assemble();
@@ -286,9 +283,22 @@ void STRUC::initialize(float presPist, Mesh mesh)
 		rhs = VectorXf::Zero(msh.nnt);
 		rhs_term(-presPist);
 
-		// Initialization of newmark params
-		newm_beta = struc_ppts.newm_beta;
-		newm_gamma = struc_ppts.newm_gamma;
+		is_there_cholG = false;
+
+		if (struc_ppts.ch_alph)
+		{
+			// Initialization of generalized alpha params
+			ch_alpha_m = struc_ppts.ch_alpha_m;
+			ch_alpha_f = struc_ppts.ch_alpha_f;
+			ch_beta = struc_ppts.ch_beta;
+			ch_gamma = struc_ppts.ch_gamma;
+		}
+		else
+		{
+			// Initialization of newmark params
+			newm_beta = struc_ppts.newm_beta;
+			newm_gamma = struc_ppts.newm_gamma;
+		}
 	}
 
 	// Initialisation of the displacement
@@ -338,10 +348,8 @@ void STRUC::initialize(float presPist, Mesh mesh)
 	else
 	{
 		float E = struc_ppts.young, m = struc_ppts.rho_s * struc_ppts.A * struc_ppts.Lsp0;
-		//ColPivHouseholderQR<MatrixXf> dec(m * mass);
-		//u_ddt_n = dec.solve(rhs + E * rigid * u_n);
 		Eigen::SimplicialCholesky<SparseMatrix<float>> chol(m * mass);
-		u_ddt_n = chol.solve(rhs + E * rigid * u_n);
+		u_ddt_n = chol.solve(rhs - (-E) * rigid * u_n);
 	}
 
 #if defined(_LINUX) | (_WIN32)
@@ -462,23 +470,58 @@ void STRUC::assemble()
 					mass.coeffRef(elem_id(i), elem_id(j)) += masse(i, j);
 				}
 			}
-		//rigid(elem_id, elem_id) = rigid(elem_id, elem_id) + rigid_e(coor_e);
-		//mass(elem_id, elem_id) = mass(elem_id, elem_id) + mass_e(coor_e);
 	}
 }
 
-void STRUC::lin_1D_model_solve(float Delta_t, float beta)
+void STRUC::lin_1D_model_solve(float Delta_t, float beta, float gamma)
 {
 	SparseMatrix<float> G;
-	VectorXf H;
+	VectorXf H, prev_u_ddt = u_ddt_n;
 	float E, m;
 
 	m = struc_ppts.rho_s * struc_ppts.A * struc_ppts.Lsp0;
 	E = struc_ppts.young;
 
-	G = (m / (beta * std::pow(Delta_t, 2))) * mass - E * rigid;
-	H = (E * rigid * u_n + (m / (Delta_t * beta)) * mass * u_dt_n + (m * (.5 - beta) / beta) * mass * u_ddt_n + rhs);
+	if (struc_ppts.ch_alph)
+	{
+		if (!is_there_cholG)
+		{
+			G = (1 - ch_alpha_m) * m * mass + (1 - ch_alpha_f) * std::pow(Delta_t, 2) * ch_beta * (-E) * rigid;
+			chol_G.compute(G);
+			is_there_cholG = true;
+		}
+		H = rhs - ((1 - ch_alpha_f) * std::pow(Delta_t, 2) * (.5 - ch_beta) * (-E) * rigid + ch_alpha_m * m * mass) * u_ddt_n - ((1 + ch_alpha_f) * (-E) * rigid) * u_n - (1 - ch_alpha_f) * Delta_t * (-E) * rigid * u_dt_n;
 
-	Eigen::SimplicialCholesky<SparseMatrix<float>> chol(G);
-	delta_u_n = chol.solve(H);
+		u_ddt_n = chol_G.solve(H);
+		u_n = u_n + Delta_t*u_dt_n + std::pow(Delta_t, 2) * ((.5-ch_beta) * prev_u_ddt + ch_beta * u_ddt_n);
+		u_dt_n = u_dt_n + Delta_t * ((1 - ch_gamma) * prev_u_ddt + ch_gamma * u_ddt_n);
+	}
+	else if (struc_ppts.newm)
+	{
+		if (!is_there_cholG)
+		{
+			G = m * mass + beta * std::pow(Delta_t, 2) * (-E) * rigid;
+			chol_G.compute(G);
+			is_there_cholG = true;
+		}
+		H = rhs - (-E) * rigid * (u_n + Delta_t * u_dt_n + (.5 - beta) * std::pow(Delta_t, 2) * u_ddt_n);
+
+		u_ddt_n = chol_G.solve(H);
+		u_dt_n = u_dt_n + (1 - gamma) * Delta_t * prev_u_ddt + gamma * Delta_t * u_ddt_n;
+		u_n = u_n + Delta_t * u_dt_n + (.5 - beta) * pow(Delta_t, 2) * prev_u_ddt + beta * pow(Delta_t, 2) * u_ddt_n;
+	}
+	else
+	{
+		if (!is_there_cholG)
+		{
+			G = m * mass;
+			chol_G.compute(G);
+			is_there_cholG = true;
+		}
+		H = rhs - (-E) * rigid * u_n - Delta_t * (-E) * rigid * u_dt_n;
+
+		u_ddt_n = chol_G.solve(H);
+		u_dt_n = u_dt_n + Delta_t * u_ddt_n;
+		u_n = u_n + Delta_t * u_dt_n;
+	}
 }

@@ -5,7 +5,7 @@
 using namespace Eigen;
 using namespace std;
 
-FSI::FSI(float T0)
+FSI::FSI()
 {
 	Total_time = 0;
 	istep = -1;
