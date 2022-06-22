@@ -3,6 +3,7 @@
 /build/
 /Results/*.txt
 /tests/test_results/*.txt
+/tests/build/
 
 .project
 .cproject
