@@ -12,7 +12,6 @@
 
 
 *.exe
-test*.cpp
 hello.cpp
 
 /include/config.h

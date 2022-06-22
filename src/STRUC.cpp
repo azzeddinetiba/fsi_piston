@@ -308,7 +308,11 @@ void STRUC::initialize(float presPist, Mesh mesh)
 	}
 	else
 	{
-		u_n = (struc_ppts.U_0 * VectorXf::LinSpaced(Sequential, msh.nnt, 1, 0));
+		// u_n = (struc_ppts.U_0 * VectorXf::LinSpaced(Sequential, msh.nnt, 1, 0));
+		for (int i=0; i < msh.nnt; i++)
+		{
+			u_n(i, 0) = struc_ppts.U_0 * std::cos(std::acos(-1)*i/(2 * struc_ppts.Lsp0));
+		}
 	}
 
 	// Initialisation of the velocity
