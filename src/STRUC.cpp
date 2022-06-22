@@ -11,10 +11,10 @@ STRUC::STRUC(properties ppt)
 	if (struc_ppts.sdim == 0)
 		omega0 = std::sqrt(struc_ppts.vprel[0] / struc_ppts.vprel[1]);
 	else
-		omega0 = std::sqrt((struc_ppts.young)/(struc_ppts.rho_s * std::pow(struc_ppts.Lsp0, 3)));
+		omega0 = std::sqrt((struc_ppts.young) / (struc_ppts.rho_s * std::pow(struc_ppts.Lsp0, 3)));
 	freq0 = omega0 / (2 * M_PI);
 	T0 = 1. / freq0;
-	std::cout<<"HAA"<<T0;
+	std::cout << "HAA" << T0;
 }
 
 float STRUC::get_u()
@@ -72,23 +72,23 @@ void STRUC::set_BC(float presL2t_ind)
 	Ppiston = presL2t_ind;
 	if (struc_ppts.sdim == 1)
 	{
-		rhs_term(-(Ppiston-1e5));
+		rhs_term(-(Ppiston - 1e5));
 	}
 }
 
 void STRUC::set_BC_essential(int id)
 {
-	for(int i =0; i < msh.nnt; i++)
+	for (int i = 0; i < msh.nnt; i++)
 	{
-			mass.coeffRef(id, i) = 0.;
-			mass.coeffRef(i, id) = 0.;
-			rigid.coeffRef(id, i) = 0.;
-			rigid.coeffRef(i, id) = 0.;
+		mass.coeffRef(id, i) = 0.;
+		mass.coeffRef(i, id) = 0.;
+		rigid.coeffRef(id, i) = 0.;
+		rigid.coeffRef(i, id) = 0.;
 	}
 	mass = mass.pruned();
 	rigid = rigid.pruned();
-	mass.coeffRef(id,id) = 1.;
-	rigid.coeffRef(id,id) = 1.;
+	mass.coeffRef(id, id) = 1.;
+	rigid.coeffRef(id, id) = 1.;
 }
 
 void STRUC::set_ppts(properties ppt)
@@ -136,7 +136,7 @@ void STRUC::nonlin_model_solve(float Delta_t)
 		if (struc_ppts.nln_order == 2)
 		{
 			res = std::pow(Delta_t, 2) * (A * Ppiston + kp * u0 + mass * u_double_dot_t -
-									 kp * u_t - kp * delta_u - mu * (u_t - u0 + delta_u) * std::abs(u_t + delta_u - u0)) -
+										  kp * u_t - kp * delta_u - mu * (u_t - u0 + delta_u) * std::abs(u_t + delta_u - u0)) -
 				  4 * mass * delta_u + 4 * mass * u_dot_t * Delta_t;
 
 			if ((u_t - struc_ppts.u0 + delta_u) > 0.)
@@ -272,19 +272,18 @@ void STRUC::solve(float Delta_t)
 void STRUC::initialize(float presPist, Mesh mesh)
 {
 	// Initialisation of mesh, mass and stiffeness matrices (1D case)
-	if(struc_ppts.sdim == 1)
+	if (struc_ppts.sdim == 1)
 	{
 		msh = mesh;
 		rigid.resize(msh.nnt, msh.nnt);
 		mass.resize(msh.nnt, msh.nnt);
 		assemble();
 
-		set_BC_essential(msh.nnt-1); // 0 Dirichlet Cond at the right boundary
+		set_BC_essential(msh.nnt - 1); // 0 Dirichlet Cond at the right boundary
 		rhs = VectorXf::Zero(msh.nnt);
 		rhs_term(-presPist);
 
 		is_there_cholG = false;
-
 		if (struc_ppts.ch_alph)
 		{
 			// Initialization of generalized alpha params
@@ -308,10 +307,10 @@ void STRUC::initialize(float presPist, Mesh mesh)
 	}
 	else
 	{
-		// u_n = (struc_ppts.U_0 * VectorXf::LinSpaced(Sequential, msh.nnt, 1, 0));
-		for (int i=0; i < msh.nnt; i++)
+		u_n = VectorXf::Zero(msh.nnt);
+		for (int i = 0; i < msh.nnt; i++)
 		{
-			u_n(i, 0) = struc_ppts.U_0 * std::cos(std::acos(-1)*i/(2 * struc_ppts.Lsp0));
+			u_n(i) = struc_ppts.U_0 * std::cos(std::acos(-1) * i / (2 * (msh.nnt - 1)));
 		}
 	}
 
@@ -326,7 +325,7 @@ void STRUC::initialize(float presPist, Mesh mesh)
 	}
 
 	// Initialisation of the acceleration
-	if(struc_ppts.sdim == 0)
+	if (struc_ppts.sdim == 0)
 	{
 		if (struc_ppts.spring_model == "linear")
 		{
@@ -339,20 +338,22 @@ void STRUC::initialize(float presPist, Mesh mesh)
 			if (struc_ppts.nln_order == 2)
 			{
 				u_double_dot_t = (struc_ppts.A * presPist + struc_ppts.vprel[0] * (struc_ppts.u0 - u_t) -
-								struc_ppts.mu * (u_t - struc_ppts.u0) * std::abs(u_t - struc_ppts.u0)) /
-								struc_ppts.vprel[1];
+								  struc_ppts.mu * (u_t - struc_ppts.u0) * std::abs(u_t - struc_ppts.u0)) /
+								 struc_ppts.vprel[1];
 			}
 			else
 			{
 				u_double_dot_t = (struc_ppts.A * presPist + struc_ppts.vprel[0] * (struc_ppts.u0 - u_t) + struc_ppts.mu * std::pow(struc_ppts.u0 - u_t, 3)) /
-								struc_ppts.vprel[1];
+								 struc_ppts.vprel[1];
 			}
 		}
 	}
 	else
 	{
-		float E = struc_ppts.young, m = struc_ppts.rho_s * struc_ppts.A * struc_ppts.Lsp0;
-		Eigen::SimplicialCholesky<SparseMatrix<float>> chol(m * mass);
+		//float E = struc_ppts.young, m = struc_ppts.rho_s * struc_ppts.A * struc_ppts.Lsp0;
+		float E = struc_ppts.young, m = struc_ppts.rho_s;
+		Eigen::SimplicialCholesky<SparseMatrix<float>> chol;
+		chol.compute(m * mass);
 		u_ddt_n = chol.solve(rhs - (-E) * rigid * u_n);
 	}
 
@@ -466,14 +467,14 @@ void STRUC::assemble()
 		rigide = rigid_e(coor_e);
 		masse = mass_e(coor_e);
 
-		for (int i = 0; i<2; i++)
+		for (int i = 0; i < 2; i++)
+		{
+			for (int j = 0; j < 2; j++)
 			{
-				for(int j = 0; j<2; j++)
-				{
-					rigid.coeffRef(elem_id(i), elem_id(j)) += rigide(i, j);
-					mass.coeffRef(elem_id(i), elem_id(j)) += masse(i, j);
-				}
+				rigid.coeffRef(elem_id(i), elem_id(j)) += rigide(i, j);
+				mass.coeffRef(elem_id(i), elem_id(j)) += masse(i, j);
 			}
+		}
 	}
 }
 
@@ -483,7 +484,7 @@ void STRUC::lin_1D_model_solve(float Delta_t, float beta, float gamma)
 	VectorXf H, prev_u_ddt = u_ddt_n;
 	float E, m;
 
-	m = struc_ppts.rho_s * struc_ppts.A * struc_ppts.Lsp0;
+	m = struc_ppts.rho_s;
 	E = struc_ppts.young;
 
 	if (struc_ppts.ch_alph)
@@ -497,7 +498,7 @@ void STRUC::lin_1D_model_solve(float Delta_t, float beta, float gamma)
 		H = rhs - ((1 - ch_alpha_f) * std::pow(Delta_t, 2) * (.5 - ch_beta) * (-E) * rigid + ch_alpha_m * m * mass) * u_ddt_n - ((1 + ch_alpha_f) * (-E) * rigid) * u_n - (1 - ch_alpha_f) * Delta_t * (-E) * rigid * u_dt_n;
 
 		u_ddt_n = chol_G.solve(H);
-		u_n = u_n + Delta_t*u_dt_n + std::pow(Delta_t, 2) * ((.5-ch_beta) * prev_u_ddt + ch_beta * u_ddt_n);
+		u_n = u_n + Delta_t * u_dt_n + std::pow(Delta_t, 2) * ((.5 - ch_beta) * prev_u_ddt + ch_beta * u_ddt_n);
 		u_dt_n = u_dt_n + Delta_t * ((1 - ch_gamma) * prev_u_ddt + ch_gamma * u_ddt_n);
 	}
 	else if (struc_ppts.newm)
@@ -528,4 +529,13 @@ void STRUC::lin_1D_model_solve(float Delta_t, float beta, float gamma)
 		u_dt_n = u_dt_n + Delta_t * u_ddt_n;
 		u_n = u_n + Delta_t * u_dt_n;
 	}
+}
+
+void STRUC::store_test_data(vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation,
+							vector<VectorXf, aligned_allocator<VectorXf>> &histo_dt,
+							vector<VectorXf, aligned_allocator<VectorXf>> &histo_ddt)
+{
+	histo_deformation.push_back(u_n);
+	histo_dt.push_back(u_dt_n);
+	histo_ddt.push_back(u_ddt_n);
 }

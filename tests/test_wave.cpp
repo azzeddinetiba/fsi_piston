@@ -73,8 +73,8 @@ properties load_ppts()
 	ppts.rom_in_struc = false;
 	ppts.cont_rom = true;
 
-	ppts.Lsp0 = 1.2; // Unstretched spring length
-	ppts.young = ppts.vprel[0] * ppts.Lsp0/ppts.A; // Young modulus equivalent to the spring rigidity
+	ppts.Lsp0 = 1.2;								   // Unstretched spring length
+	ppts.young = ppts.vprel[0] * ppts.Lsp0 / ppts.A;   // Young modulus equivalent to the spring rigidity
 	ppts.rho_s = ppts.vprel[1] / (ppts.A * ppts.Lsp0); // Beam density equivalent to the spring mass
 	if (ppts.spring_model == "nonlinear")
 	{
@@ -109,8 +109,8 @@ properties load_ppts()
 	// Generalized alpha scheme
 	ppts.ch_alph = false;
 	ppts.ch_rho = 0.;
-	ppts.ch_alpha_m = (2 * ppts.ch_rho - 1.)/(ppts.ch_rho + 1.);
-	ppts.ch_alpha_f = ppts.ch_rho/(ppts.ch_rho + 1);
+	ppts.ch_alpha_m = (2 * ppts.ch_rho - 1.) / (ppts.ch_rho + 1.);
+	ppts.ch_alpha_f = ppts.ch_rho / (ppts.ch_rho + 1);
 	ppts.ch_beta = .25 * std::pow(1. - ppts.ch_alpha_m + ppts.ch_alpha_f, 2);
 	ppts.ch_gamma = .5 - ppts.ch_alpha_m + ppts.ch_alpha_f;
 
@@ -123,18 +123,26 @@ int main()
 	// Geometrical and physical properties
 	properties ppts;
 	ppts = load_ppts();
-	float dt = 1e-5;
-	#if defined(_LINUX) | (_WIN32)
+	float dt = 1e-5, Tmax = 0.18, Total_time = 0., Delta_t;
+	vector<float> t;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_un;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_udt;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_uddt;
+	ofstream file1("../test_results/results_un.txt");
+	ofstream file2("../test_results/results_udt.txt");
+	ofstream file3("../test_results/results_uddt.txt");
+
+#if defined(_LINUX) | (_WIN32)
 	if (ppts.rom_in_struc)
 	{
-   		py::initialize_interpreter();
+		py::initialize_interpreter();
 	}
-	#endif
+#endif
 
 	// Create the meshes
-	int nnt = nmesh;
+	int nnt = nmesh, i = 0;
 	Mesh mesh_ns;
-	mesh_ns.load(100, ppts.Lsp0);
+	mesh_ns.load(nnt, ppts.Lsp0);
 
 	// Create the structure FEM model
 	STRUC structure_model(ppts);
@@ -142,48 +150,78 @@ int main()
 
 	VectorXf vcor, vcor_np1, vcelerity, wx;
 	MatrixXf vsol;
-	int nnt;
 	float u_dot_t, ppiston;
 
-	Tmax = 0.18;
-	Delta_t = d_t;
+	Delta_t = dt;
 
 	// Time loop/increments
 	while (Total_time < (Tmax - Delta_t))
 	{
 
+		structure_model.store_test_data(histo_un, histo_udt, histo_uddt);
+		if (file1.is_open())
+		{
+			file1 << histo_un[i] << '\n';
+		}
+
+		if (file2.is_open())
+		{
+			file2 << histo_udt[i] << '\n';
+		}
+
+		if (file3.is_open())
+		{
+			file3 << histo_uddt[i] << '\n';
+		}
+
 		cout << "Total Time :\n";
 		cout << Total_time;
 		cout << "\n";
 
-		istep += 1;
-
-		Delta_t = d_t;
-
 		// Solve the structural problem
 
 		// Apply the piston pressure value from the fluid problem to the solid problem
-		struc.set_BC(0.);
+		structure_model.set_BC(0.);
 
 		// Get the structure solution
-		struc.solve(Delta_t);
-		u_dot_t = struc.get_u_dot_t();
-		struc.store_data(histo_deformation, histo_accel, Force_ext, Ec, Ep, Em, histo_dt, histo_ddt);
+		structure_model.solve(Delta_t);
 
 		// Storing the time data
-		Delta_t_storage.push_back(Delta_t);
 		Total_time += Delta_t;
 
 		t.push_back(Total_time);
+
+		i += 1;
 	}
 
+	ofstream file("../test_results/results_t.txt");
+	if (file.is_open())
+	{
+		std::ostream_iterator<float> output_iterator(file, "\n");
+		std::copy(t.begin(), t.end(), output_iterator);
+	}
 
-	#if defined(_LINUX) | (_WIN32)
+	if (file1.is_open())
+	{
+		file1 << histo_un[i] << '\n';
+	}
+
+	if (file2.is_open())
+	{
+		file2 << histo_udt[i] << '\n';
+	}
+
+	if (file3.is_open())
+	{
+		file3 << histo_uddt[i] << '\n';
+	}
+
+#if defined(_LINUX) | (_WIN32)
 	if (ppts.rom_in_struc)
 	{
 		py::finalize_interpreter();
 	}
-	#endif
+#endif
 
 	return 0;
 }

@@ -24,7 +24,7 @@ using namespace py::literals;
 class STRUC
 {
 
-    float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u, newm_beta, newm_gamma, ch_alpha_m, ch_alpha_f, 
+    float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u, newm_beta, newm_gamma, ch_alpha_m, ch_alpha_f,
         ch_beta, ch_gamma;
     properties struc_ppts;
     VectorXf rhs, u_n, u_dt_n, u_ddt_n, delta_u_n;
@@ -50,6 +50,9 @@ public:
                     vector<float> &histo_accel, vector<float> &Force_ext, vector<float> &Ec,
                     vector<float> &Ep, vector<float> &Em, vector<VectorXf, aligned_allocator<VectorXf>> &histo_udt,
                     vector<VectorXf, aligned_allocator<VectorXf>> &histo_uddt);
+    void store_test_data(vector<VectorXf, aligned_allocator<VectorXf>> &histo_deformation,
+                         vector<VectorXf, aligned_allocator<VectorXf>> &histo_dt,
+                         vector<VectorXf, aligned_allocator<VectorXf>> &histo_ddt);
     float get_u();
     float get_u_dot_t();
     float get_u_double_dot_t();
