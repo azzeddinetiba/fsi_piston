@@ -2,7 +2,7 @@
 /Debug/
 /build/
 /Results/*.txt
-
+/tests/test_results/*.txt
 
 .project
 .cproject
