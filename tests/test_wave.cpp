@@ -21,17 +21,12 @@
 #include "Fluid.h"
 #include "FSI.h"
 #include "config.h"
-#if defined(_LINUX) | (_WIN32)
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
 #include <pybind11/eigen.h>
-#endif
 
 using namespace Eigen;
 using namespace std;
-#if defined(_LINUX) | (_WIN32)
-namespace py = pybind11;
-#endif
 
 properties load_ppts()
 {
@@ -128,16 +123,12 @@ int main()
 	vector<VectorXf, aligned_allocator<VectorXf>> histo_un;
 	vector<VectorXf, aligned_allocator<VectorXf>> histo_udt;
 	vector<VectorXf, aligned_allocator<VectorXf>> histo_uddt;
-	ofstream file1("../test_results/results_un.txt");
-	ofstream file2("../test_results/results_udt.txt");
-	ofstream file3("../test_results/results_uddt.txt");
-
-#if defined(_LINUX) | (_WIN32)
-	if (ppts.rom_in_struc)
-	{
-		py::initialize_interpreter();
-	}
-#endif
+	ofstream file1("../../test_results/results_un.txt");
+	ofstream file2("../../test_results/results_udt.txt");
+	ofstream file3("../../test_results/results_uddt.txt");
+	VectorXf vcor, vcor_np1, vcelerity, wx;
+	MatrixXf vsol;
+	float u_dot_t, ppiston;
 
 	// Create the meshes
 	int nnt = nmesh, i = 0;
@@ -147,32 +138,29 @@ int main()
 	// Create the structure FEM model
 	STRUC structure_model(ppts);
 	structure_model.initialize(0., mesh_ns);
+	structure_model.store_test_data(histo_un, histo_udt, histo_uddt);
+	t.push_back(Total_time);
 
-	VectorXf vcor, vcor_np1, vcelerity, wx;
-	MatrixXf vsol;
-	float u_dot_t, ppiston;
+	if (file1.is_open())
+	{
+		file1 << histo_un[0] << '\n';
+	}
+
+	if (file2.is_open())
+	{
+		file2 << histo_udt[0] << '\n';
+	}
+
+	if (file3.is_open())
+	{
+		file3 << histo_uddt[0] << '\n';
+	}
 
 	Delta_t = dt;
 
 	// Time loop/increments
 	while (Total_time < (Tmax - Delta_t))
 	{
-
-		structure_model.store_test_data(histo_un, histo_udt, histo_uddt);
-		if (file1.is_open())
-		{
-			file1 << histo_un[i] << '\n';
-		}
-
-		if (file2.is_open())
-		{
-			file2 << histo_udt[i] << '\n';
-		}
-
-		if (file3.is_open())
-		{
-			file3 << histo_uddt[i] << '\n';
-		}
 
 		cout << "Total Time :\n";
 		cout << Total_time;
@@ -185,43 +173,35 @@ int main()
 
 		// Get the structure solution
 		structure_model.solve(Delta_t);
+		structure_model.store_test_data(histo_un, histo_udt, histo_uddt);
 
+		if (file1.is_open())
+		{
+			file1 << histo_un[i+1] << '\n';
+		}
+
+		if (file2.is_open())
+		{
+			file2 << histo_udt[i+1] << '\n';
+		}
+
+		if (file3.is_open())
+		{
+			file3 << histo_uddt[i+1] << '\n';
+		}
 		// Storing the time data
 		Total_time += Delta_t;
-
 		t.push_back(Total_time);
 
 		i += 1;
 	}
 
-	ofstream file("../test_results/results_t.txt");
+	ofstream file("../../test_results/results_t.txt");
 	if (file.is_open())
 	{
 		std::ostream_iterator<float> output_iterator(file, "\n");
 		std::copy(t.begin(), t.end(), output_iterator);
 	}
-
-	if (file1.is_open())
-	{
-		file1 << histo_un[i] << '\n';
-	}
-
-	if (file2.is_open())
-	{
-		file2 << histo_udt[i] << '\n';
-	}
-
-	if (file3.is_open())
-	{
-		file3 << histo_uddt[i] << '\n';
-	}
-
-#if defined(_LINUX) | (_WIN32)
-	if (ppts.rom_in_struc)
-	{
-		py::finalize_interpreter();
-	}
-#endif
 
 	return 0;
 }
