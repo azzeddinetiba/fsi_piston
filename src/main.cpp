@@ -136,7 +136,7 @@ int main()
 	Mesh mesh_n;
 	mesh_n.load(nnt, ppts.L_t);
 	Mesh mesh_ns;
-	mesh_ns.load(100, ppts.Lsp0);
+	mesh_ns.load(nnt, ppts.Lsp0);
 
 	// Create the fluid FEM model
 	Fluid fluid_model(ppts);
