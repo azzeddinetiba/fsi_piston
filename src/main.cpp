@@ -65,7 +65,7 @@ properties load_ppts()
 	ppts.u_init = 0.;
 	ppts.e_init = ppts.pres_init / ppts.gamm1 / ppts.rho_init + 0.5 * pow(ppts.u_init, 2.);
 
-	ppts.vprel.push_back(1e7);	// Spring rigidity
+	ppts.vprel.push_back(1.5e7);	// Spring rigidity
 	ppts.vprel.push_back(mass); // Spring mass
 	ppts.sdim = 1;
 	ppts.spring_model = "linear";
@@ -123,6 +123,7 @@ int main()
 	// Geometrical and physical properties
 	properties ppts;
 	ppts = load_ppts();
+	std::cout<<"YOUNG Modulus : "<<ppts.young<<"\n";
 	float dt = 0.;
 	#if defined(_LINUX) | (_WIN32)
 	if (ppts.rom_in_struc)

@@ -118,14 +118,14 @@ int main()
 	// Geometrical and physical properties
 	properties ppts;
 	ppts = load_ppts();
-	float dt = 1e-5, Tmax = 0.18, Total_time = 0., Delta_t;
+	float dt = 1e-6, Tmax = 0.075, Total_time = 0., Delta_t;
 	vector<float> t;
 	vector<VectorXf, aligned_allocator<VectorXf>> histo_un;
 	vector<VectorXf, aligned_allocator<VectorXf>> histo_udt;
 	vector<VectorXf, aligned_allocator<VectorXf>> histo_uddt;
-	ofstream file1("../../test_results/results_un.txt");
-	ofstream file2("../../test_results/results_udt.txt");
-	ofstream file3("../../test_results/results_uddt.txt");
+	ofstream file1("../test_results/results_un.txt");
+	ofstream file2("../test_results/results_udt.txt");
+	ofstream file3("../test_results/results_uddt.txt");
 	VectorXf vcor, vcor_np1, vcelerity, wx;
 	MatrixXf vsol;
 	float u_dot_t, ppiston;
@@ -196,7 +196,7 @@ int main()
 		i += 1;
 	}
 
-	ofstream file("../../test_results/results_t.txt");
+	ofstream file("../test_results/results_t.txt");
 	if (file.is_open())
 	{
 		std::ostream_iterator<float> output_iterator(file, "\n");
