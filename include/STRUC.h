@@ -27,7 +27,7 @@ class STRUC
     float u_t, u_dot_t, u_double_dot_t, Ppiston, delta_u, newm_beta, newm_gamma, ch_alpha_m, ch_alpha_f,
         ch_beta, ch_gamma;
     properties struc_ppts;
-    VectorXf rhs, u_n, u_dt_n, u_ddt_n, delta_u_n;
+    VectorXf rhs, u_n, u_dt_n, u_ddt_n, delta_u_n, u_int_n;
     Eigen::SimplicialCholesky<SparseMatrix<float>> chol_G;
     bool is_there_cholG;
     SparseMatrix<float> rigid, mass;

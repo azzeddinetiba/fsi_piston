@@ -65,13 +65,19 @@ properties load_ppts()
 	ppts.u_init = 0.;
 	ppts.e_init = ppts.pres_init / ppts.gamm1 / ppts.rho_init + 0.5 * pow(ppts.u_init, 2.);
 
-	ppts.vprel.push_back(1.5e7);	// Spring rigidity
+	ppts.vprel.push_back(1e7);	// Spring rigidity
 	ppts.vprel.push_back(mass); // Spring mass
-	ppts.sdim = 1;
-	ppts.spring_model = "linear";
+	ppts.sdim = 0;
+	ppts.spring_model = "nonlinear";
 	ppts.nln_order = 3;
 	ppts.rom_in_struc = false;
 	ppts.cont_rom = true;
+
+	ppts.amort = true;
+	if (ppts.amort)
+	{
+		ppts.damp = c_coeff * 2.0 * std::sqrt(ppts.vprel[0] * ppts.vprel[1]);
+	}
 
 	ppts.Lsp0 = 1.2; // Unstretched spring length
 	ppts.young = ppts.vprel[0] * ppts.Lsp0/ppts.A; // Young modulus equivalent to the spring rigidity
@@ -102,7 +108,7 @@ properties load_ppts()
 	ppts.dt = 7.09e-6;
 
 	// Newmark params
-	ppts.newm = true;
+	ppts.newm = false;
 	ppts.newm_gamma = .5;
 	ppts.newm_beta = .25 * std::pow(ppts.newm_gamma + .5, 2);
 
@@ -113,6 +119,8 @@ properties load_ppts()
 	ppts.ch_alpha_f = ppts.ch_rho/(ppts.ch_rho + 1);
 	ppts.ch_beta = .25 * std::pow(1. - ppts.ch_alpha_m + ppts.ch_alpha_f, 2);
 	ppts.ch_gamma = .5 - ppts.ch_alpha_m + ppts.ch_alpha_f;
+
+	ppts.qs_static = false;
 
 	return ppts;
 }

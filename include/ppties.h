@@ -51,6 +51,9 @@ struct properties
 	float ch_alpha_f;
 	float ch_beta;
 	float ch_gamma;
+	bool qs_static;
+	bool amort;
+	float damp;
 };
 
 inline properties load_ppts();

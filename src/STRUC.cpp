@@ -114,7 +114,7 @@ void STRUC::lin_model_solve(float Delta_t)
 
 void STRUC::nonlin_model_solve(float Delta_t)
 {
-	float vkg, vmg, vfg, vkt, vres, inter, A, mu, kp, u0, mass;
+	float vkg, vmg, vfg, vkt, vres, inter, A, mu, kp, u0, mass, c;
 	float res, jacobian, du;
 	int i = 0;
 	newton nonlin_sys;
@@ -124,6 +124,7 @@ void STRUC::nonlin_model_solve(float Delta_t)
 	kp = struc_ppts.vprel[0];
 	u0 = struc_ppts.u0;
 	mass = struc_ppts.vprel[1];
+	c = struc_ppts.damp;
 
 	nonlin_sys.initialize();
 	delta_u = nonlin_sys.get_init();
@@ -149,13 +150,37 @@ void STRUC::nonlin_model_solve(float Delta_t)
 		}
 		else
 		{
-			res = mu * std::pow(delta_u, 3) + (3 * mu * u_t - 3 * mu * u0) * std::pow(delta_u, 2) +
-				  (4 * mass / (std::pow(Delta_t, 2)) + kp + 3 * mu * std::pow(u_t, 2) - 6 * mu * u0 * u_t + 3 * mu * std::pow(u_t, 2)) * delta_u -
-				  mass * u_double_dot_t - 4 * mass / (Delta_t)*u_dot_t + (kp + 3 * mu * std::pow(u0, 2)) * u_t + mu * std::pow(u_t, 3) -
-				  3 * mu * u0 * std::pow(u_t, 2) - mu * std::pow(u0, 3) - kp * u0 - A * Ppiston;
+			if (struc_ppts.amort)
+			{
+				// res = (4*mass/std::pow(Delta_t, 2) + kp + 2*c/Delta_t + 3*mu*std::pow(u0, 2)) * delta_u + 
+				// 		(-4*mass/Delta_t - c) * u_t + 
+				// 		(-mass) * u_dot_t + 
+				// 		(kp + 3 * mu * std::pow(u0, 2) * u_t) + 
+				// 		(- kp * u0 - mu * std::pow(u0, 3)) + 
+				// 		(-3 * mu * u0) * std::pow(delta_u + u_t, 2) +
+				// 		mu * std::pow(delta_u + u_t, 3) + 
+				// 		(-A)*Ppiston;
 
-			jacobian = 3 * mu * std::pow(delta_u, 2) + 2 * (3 * mu * u_t - 3 * mu * u0) * delta_u + 4 * mass / (std::pow(Delta_t, 2)) +
-					   kp + 3 * mu * std::pow(u_t, 2) - 6 * mu * u0 * u_t + 3 * mu * std::pow(u0, 2);
+				jacobian = (4*mass/std::pow(Delta_t, 2) + kp + 2*c/Delta_t + 3*mu*std::pow(u0, 2)) +
+						(-3 * mu *u0) * 2 * (delta_u + u_t) +
+						(mu) * 3 * std::pow(delta_u + u_t, 2) ;
+				res = mass * (4/std::pow(Delta_t, 2) * (delta_u) - 4/Delta_t * (u_dot_t) - u_double_dot_t) + 
+						c * (u_dot_t + 0.5 * Delta_t * (u_dot_t + u_double_dot_t)) +
+						kp * (delta_u + u_t) +
+						(-kp * u0) + 
+						(-mu) * (std::pow(u0, 3) - 3 * (delta_u+u_t)*std::pow(u0, 2) + 3 * u0*std::pow(u_t+delta_u, 2) - std::pow(u_t+delta_u, 3)) +
+						(-A) * Ppiston;
+			}
+			else
+			{
+				res = mu * std::pow(delta_u, 3) + (3 * mu * u_t - 3 * mu * u0) * std::pow(delta_u, 2) +
+					  (4 * mass / (std::pow(Delta_t, 2)) + kp + 3 * mu * std::pow(u_t, 2) - 6 * mu * u0 * u_t + 3 * mu * std::pow(u_t, 2)) * delta_u -
+					  mass * u_double_dot_t - 4 * mass / (Delta_t)*u_dot_t + (kp + 3 * mu * std::pow(u0, 2)) * u_t + mu * std::pow(u_t, 3) -
+					  3 * mu * u0 * std::pow(u_t, 2) - mu * std::pow(u0, 3) - kp * u0 - A * Ppiston;
+
+				jacobian = 3 * mu * std::pow(delta_u, 2) + 2 * (3 * mu * u_t - 3 * mu * u0) * delta_u + 4 * mass / (std::pow(Delta_t, 2)) +
+						   kp + 3 * mu * std::pow(u_t, 2) - 6 * mu * u0 * u_t + 3 * mu * std::pow(u0, 2);
+			}
 		}
 
 		nonlin_sys.set_residual(res);
@@ -309,10 +334,9 @@ void STRUC::initialize(float presPist, Mesh mesh)
 		u_n = VectorXf::Zero(msh.nnt);
 		for (int i = 0; i < msh.nnt; i++)
 		{
-		u_n(i) = struc_ppts.U_0 * std::cos(std::acos(-1) * i / (2 * (msh.nnt - 1)));
+			u_n(i) = struc_ppts.U_0 * std::cos(std::acos(-1) * i / (2 * (msh.nnt - 1)));
 		}
 		//u_n = (struc_ppts.U_0 * VectorXf::LinSpaced(Sequential, msh.nnt, 1, 0));
-
 	}
 
 	// Initialisation of the velocity
@@ -516,6 +540,18 @@ void STRUC::lin_1D_model_solve(float Delta_t, float beta, float gamma)
 		u_ddt_n = chol_G.solve(H);
 		u_dt_n = u_dt_n + (1 - gamma) * Delta_t * prev_u_ddt + gamma * Delta_t * u_ddt_n;
 		u_n = u_n + Delta_t * u_dt_n + (.5 - beta) * pow(Delta_t, 2) * prev_u_ddt + beta * pow(Delta_t, 2) * u_ddt_n;
+	}
+	else if (struc_ppts.qs_static)
+	{
+		if (!is_there_cholG)
+		{
+			chol_G.compute(rigid);
+			is_there_cholG = true;
+		}
+
+		u_int_n = chol_G.solve(rhs);
+		u_dt_n = (u_int_n - u_n) / Delta_t;
+		u_n = u_int_n;
 	}
 	else
 	{
