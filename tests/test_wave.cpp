@@ -21,17 +21,12 @@
 #include "Fluid.h"
 #include "FSI.h"
 #include "config.h"
-#if defined(_LINUX) | (_WIN32)
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
 #include <pybind11/eigen.h>
-#endif
 
 using namespace Eigen;
 using namespace std;
-#if defined(_LINUX) | (_WIN32)
-namespace py = pybind11;
-#endif
 
 properties load_ppts()
 {
@@ -67,20 +62,14 @@ properties load_ppts()
 
 	ppts.vprel.push_back(1e7);	// Spring rigidity
 	ppts.vprel.push_back(mass); // Spring mass
-	ppts.sdim = 0;
-	ppts.spring_model = "nonlinear";
+	ppts.sdim = 1;
+	ppts.spring_model = "linear";
 	ppts.nln_order = 3;
 	ppts.rom_in_struc = false;
 	ppts.cont_rom = true;
 
-	ppts.amort = true;
-	if (ppts.amort)
-	{
-		ppts.damp = c_coeff * 2.0 * std::sqrt(ppts.vprel[0] * ppts.vprel[1]);
-	}
-
-	ppts.Lsp0 = 1.2; // Unstretched spring length
-	ppts.young = ppts.vprel[0] * ppts.Lsp0/ppts.A; // Young modulus equivalent to the spring rigidity
+	ppts.Lsp0 = 1.2;								   // Unstretched spring length
+	ppts.young = ppts.vprel[0] * ppts.Lsp0 / ppts.A;   // Young modulus equivalent to the spring rigidity
 	ppts.rho_s = ppts.vprel[1] / (ppts.A * ppts.Lsp0); // Beam density equivalent to the spring mass
 	if (ppts.spring_model == "nonlinear")
 	{
@@ -108,19 +97,17 @@ properties load_ppts()
 	ppts.dt = 7.09e-6;
 
 	// Newmark params
-	ppts.newm = false;
+	ppts.newm = true;
 	ppts.newm_gamma = .5;
 	ppts.newm_beta = .25 * std::pow(ppts.newm_gamma + .5, 2);
 
 	// Generalized alpha scheme
 	ppts.ch_alph = false;
 	ppts.ch_rho = 0.;
-	ppts.ch_alpha_m = (2 * ppts.ch_rho - 1.)/(ppts.ch_rho + 1.);
-	ppts.ch_alpha_f = ppts.ch_rho/(ppts.ch_rho + 1);
+	ppts.ch_alpha_m = (2 * ppts.ch_rho - 1.) / (ppts.ch_rho + 1.);
+	ppts.ch_alpha_f = ppts.ch_rho / (ppts.ch_rho + 1);
 	ppts.ch_beta = .25 * std::pow(1. - ppts.ch_alpha_m + ppts.ch_alpha_f, 2);
 	ppts.ch_gamma = .5 - ppts.ch_alpha_m + ppts.ch_alpha_f;
-
-	ppts.qs_static = false;
 
 	return ppts;
 }
@@ -131,48 +118,90 @@ int main()
 	// Geometrical and physical properties
 	properties ppts;
 	ppts = load_ppts();
-	std::cout<<"YOUNG Modulus : "<<ppts.young<<"\n";
-	float dt = 0.;
-	#if defined(_LINUX) | (_WIN32)
-	if (ppts.rom_in_struc)
-	{
-   		py::initialize_interpreter();
-	}
-	#endif
+	float dt = 1e-6, Tmax = 0.075, Total_time = 0., Delta_t;
+	vector<float> t;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_un;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_udt;
+	vector<VectorXf, aligned_allocator<VectorXf>> histo_uddt;
+	ofstream file1("../test_results/results_un.txt");
+	ofstream file2("../test_results/results_udt.txt");
+	ofstream file3("../test_results/results_uddt.txt");
+	VectorXf vcor, vcor_np1, vcelerity, wx;
+	MatrixXf vsol;
+	float u_dot_t, ppiston;
 
 	// Create the meshes
-	int nnt = nmesh;
-	Mesh mesh_n;
-	mesh_n.load(nnt, ppts.L_t);
+	int nnt = nmesh, i = 0;
 	Mesh mesh_ns;
 	mesh_ns.load(nnt, ppts.Lsp0);
 
-	// Create the fluid FEM model
-	Fluid fluid_model(ppts);
-	fluid_model.initialize(mesh_n);
-
 	// Create the structure FEM model
 	STRUC structure_model(ppts);
-	structure_model.initialize(fluid_model.get_vpres()(nnt - 1), mesh_ns);
-	if (ppts.rom_in_struc)
+	structure_model.initialize(0., mesh_ns);
+	structure_model.store_test_data(histo_un, histo_udt, histo_uddt);
+	t.push_back(Total_time);
+
+	if (file1.is_open())
 	{
-		dt = structure_model.dt_export;
+		file1 << histo_un[0] << '\n';
 	}
-	// Create the fluid-strucure interaction coupling
-	FSI fsi_piston;
 
-	// Solve the problem
-	fsi_piston.solve(structure_model, fluid_model, dt);
-
-	// Export the results into .txt files
-	fsi_piston.export_results();
-
-	#if defined(_LINUX) | (_WIN32)
-	if (ppts.rom_in_struc)
+	if (file2.is_open())
 	{
-		py::finalize_interpreter();
+		file2 << histo_udt[0] << '\n';
 	}
-	#endif
+
+	if (file3.is_open())
+	{
+		file3 << histo_uddt[0] << '\n';
+	}
+
+	Delta_t = dt;
+
+	// Time loop/increments
+	while (Total_time < (Tmax - Delta_t))
+	{
+
+		cout << "Total Time :\n";
+		cout << Total_time;
+		cout << "\n";
+
+		// Solve the structural problem
+
+		// Apply the piston pressure value from the fluid problem to the solid problem
+		structure_model.set_BC(0.);
+
+		// Get the structure solution
+		structure_model.solve(Delta_t);
+		structure_model.store_test_data(histo_un, histo_udt, histo_uddt);
+
+		if (file1.is_open())
+		{
+			file1 << histo_un[i+1] << '\n';
+		}
+
+		if (file2.is_open())
+		{
+			file2 << histo_udt[i+1] << '\n';
+		}
+
+		if (file3.is_open())
+		{
+			file3 << histo_uddt[i+1] << '\n';
+		}
+		// Storing the time data
+		Total_time += Delta_t;
+		t.push_back(Total_time);
+
+		i += 1;
+	}
+
+	ofstream file("../test_results/results_t.txt");
+	if (file.is_open())
+	{
+		std::ostream_iterator<float> output_iterator(file, "\n");
+		std::copy(t.begin(), t.end(), output_iterator);
+	}
 
 	return 0;
 }

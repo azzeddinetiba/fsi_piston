@@ -22,6 +22,8 @@ public:
 	vector<float> Imp_fl;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_velocity;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_deformation;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_dt;
+	vector<VectorXf, aligned_allocator<VectorXf> > histo_ddt;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_pres_field;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_rho;
 	vector<VectorXf, aligned_allocator<VectorXf> > histo_rho_v;
@@ -32,7 +34,7 @@ public:
 	vector<float> t, Delta_t_storage;
 	int istep;
 
-	FSI(float T0);
+	FSI();
 	void solve(STRUC &struc, Fluid &fluid, float d_t = 0);
 	void export_results();
 };
